@@ -1,0 +1,42 @@
+[
+ {
+  "name": "hook1",
+  "beats": [
+   0,
+   32
+  ],
+  "feel": "sparse piano-led beat, vocals upfront"
+ },
+ {
+  "name": "verseA",
+  "beats": [
+   32,
+   64
+  ],
+  "feel": "quiet, drums thin out, storytelling"
+ },
+ {
+  "name": "verseB",
+  "beats": [
+   64,
+   136
+  ],
+  "feel": "full drums from 25.66 (kick drop), highest density"
+ },
+ {
+  "name": "hook2",
+  "beats": [
+   136,
+   168
+  ],
+  "feel": "full hook, loud"
+ },
+ {
+  "name": "hook3",
+  "beats": [
+   168,
+   198
+  ],
+  "feel": "full hook, loudest, ends on 'Truth gon' surface every time'"
+ }
+]

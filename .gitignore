@@ -1,0 +1,17 @@
+# --- never commit (licence / size) ---
+# song audio: YouTube Audio Library allows use inside videos, not standalone redistribution
+projects/*/assets/song.*
+projects/*/assets/*.wav
+projects/*/assets/*.mp3
+# third-party recordings (reference videos are studied privately, never committed)
+*.webm
+reference/**/*.wav
+# renders and scratch (the final reference MP4 lives in reference/<slug>/ and IS committed)
+projects/*/out/
+projects/*/renders/
+projects/*/snapshots/
+projects/*/.hyperframes/
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
