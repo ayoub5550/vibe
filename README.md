@@ -9,6 +9,8 @@ The repo started as a remake of the "Ultracode" run from Devarf's experiment
   hard rules, pipeline, engine contract, pitfalls).
 - Reference implementation: [`projects/mirror-mirror`](projects/mirror-mirror). Its shot list is in
   [`storyboard.md`](projects/mirror-mirror/storyboard.md).
+- Toolbox (three.js, Canvas 2D, SVG, anime.js, Blender + runner, FFmpeg, Python, Node, AI): see
+  `AGENTS.md` §4b and the tested demo [`projects/_toolbox-demo`](projects/_toolbox-demo).
 - Reference videos: [`reference/`](reference). That folder holds our render and a breakdown of the
   Ultracode video.
 
@@ -21,7 +23,7 @@ bash ../../tools/check_render.sh out/mirror-mirror.mp4 <duration> assets/song.wa
 
 **Credits:** song "Mirror Mirror" by Anno Domini Beats (YouTube Audio Library). The original
 experiment and the Ultracode video are by Devarf (@VibeDevarf). Fonts: Big Shoulders Display,
-Limelight and Josefin Sans (SIL OFL). Libraries: three.js (MIT), GSAP.
+Limelight and Josefin Sans (SIL OFL). Libraries: three.js (MIT), GSAP, anime.js (MIT), Blender (GPL, used as a tool; nothing of it is shipped).
 
 ---
 

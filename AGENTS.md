@@ -36,7 +36,8 @@ How to read the brief (binding):
 2. "Dance **or** story": do both. The hero dances on the beat **and** every lyric line has a
    literal visual (see §8).
 3. "Motion graphics only" means code draws every pixel: no AI-generated images or video, no stock
-   footage, no photos, no pre-made 3D models. Self-hosted OFL fonts are allowed.
+   footage, no photos, no pre-made 3D models. Self-hosted OFL fonts are allowed. A Blender scene
+   counts as code only when a committed Python script builds it from primitives (§4b).
 4. "Work alone" means you never stop to ask. Make the decision, write it into `storyboard.md`
    or `analysis/story.md`, and keep going.
 
@@ -68,7 +69,7 @@ How to read the brief (binding):
   Particles are closed-form functions of `t` (life cycles via modulo), never integrated step by step.
 - M3. Reset the whole world every frame (`W.reset()`), then let the active shot configure it.
   No shot may depend on what an earlier frame did.
-- M4. Vendor every dependency (three.js UMD, gsap, fonts) into the project. Nothing loads from
+- M4. Vendor every dependency (three.js UMD, gsap, anime.js, fonts) into the project. Nothing loads from
   the network at render time.
 - M5. Verify every number you use (BPM, offsets, word times) against the audio analysis.
   Never guess a timing.
@@ -102,10 +103,55 @@ ls /usr/local/bin/hyperframes-chrome          # headless Chrome used by renders 
 ls /usr/lib/node_modules/hyperframes/node_modules/puppeteer-core   # used by tools/frames.cjs
 cd /work && uv run --with librosa python -c "import librosa; print(librosa.__version__)"
 nproc; free -g                 # this build: 17 CPUs, 328 GB RAM, no GPU (WebGL = SwiftShader, CPU)
+bash tools/install_blender.sh  # only if the video uses Blender assets (§4b); prints "Blender 4.2.3 LTS"
 ```
 Python tools that need librosa run as `cd /work && uv run --with librosa python <tool> …`.
 The other tools only need the stdlib, PIL or ffmpeg. Speech-to-text uses the Viktor SDK
 (`sdk.tools.utils_tools.speech_to_text`, ElevenLabs Scribe). The fallback is `faster-whisper`.
+
+## 4b. Toolbox: every allowed technology, what it is for, and how to keep it deterministic
+
+These are the tools the original Ultracode run had (three.js, Canvas 2D, SVG, frame-to-video),
+plus the ones this repo adds. Every row was **tested in this environment** by
+`projects/_toolbox-demo/`, a 6 s composition that uses five of them at once (screenshot recipe below).
+The engine contract still applies to all of them: **one clock `t`, frame = f(t)** (M2), and nothing
+plays by itself (N1).
+
+| Tool | Role in a video | How to use it here (tested) | Rule |
+|---|---|---|---|
+| **three.js** (r158 UMD, vendored) | The 3D world: stage, camera, lights, pooled objects | `projects/mirror-mirror/js/stage.js`. WebGL is SwiftShader (CPU), see §12 | Cache textures by key. Never create geometry or textures per frame |
+| **Canvas 2D** | The hero, card faces, kinetic type, the post pass (bloom, flashes, vignette) | `textures.js`, `jester.js`, `overlay.js` | The overlay is opaque and starts by copying `#gl` (§12) |
+| **SVG** | Crisp vector layers: line art, rays, frames, diagrams, logo/title outlines | Inline `<svg viewBox="0 0 1920 1080">` above the canvases (`_toolbox-demo`) | Animate attributes only from `t`, via anime.js `seek` or your own code. No SMIL `<animate>`, no CSS animation |
+| **anime.js** (v3.2.2, MIT, vendored `vendor/anime.min.js`) | Easing, staggers, SVG stroke draws and morphs on DOM/SVG layers | `anime.timeline({ autoplay: false })`, then `tl.seek(t * 1000)` inside your `renderAt(t)`. HyperFrames also has a built-in anime.js adapter (`window.__hfAnime`), but one clock is simpler | **Prime it** right after building: `tl.seek(END); tl.seek(0)` (§12). Stroke draws (`anime.setDashoffset`) work on path/rect/line/circle, **not `<text>`** |
+| **web engine** (headless Chrome + HyperFrames 0.6.119) | Runs the composition, seeks each frame, captures it, muxes the audio | `hyperframes lint`, `validate --no-contrast`, `render`. Chrome is `/usr/local/bin/hyperframes-chrome` | Frames render out of order across workers. Proof: the demo renders identically with `-w 1` and `-w 6` (SSIM 0.9998) |
+| **Blender** (4.2.3 LTS, CPU) | Real 3D objects you cannot fake in 2.5D: bevelled cards, glass, cloth, fluids, hard-surface props | `bash tools/install_blender.sh` (≈20 s, no root, installs under `~/opt`). Write a Python scene script like `tools/blender/card_spin.py` | Build the scene **only from code**: no downloaded models, HDRIs or textures. Render with **Cycles on CPU**, because EEVEE/Workbench need OpenGL and fail headless. Fixed `cycles.seed`, `use_animated_seed=False`, linear keys, `film_transparent=True`, view transform `Standard` |
+| **Blender runner** | Runs any Blender script headless and reproducibly | `tools/blender_run.sh <script.py> -- <args>` (`-b --factory-startup -noaudio`, exits non-zero on a Python error). Example: 48 frames of 320² in about 5 s on 17 CPUs | Blender outputs a **PNG sequence**, never the final video. Pack it with `tools/sprite_atlas.py` and draw frame `floor(t·fps) % N` (Canvas 2D `drawImage` sub-rect, or a three.js texture with `repeat`/`offset`) |
+| **FFmpeg** (5.1) | Encode, cut, probe and compare | Excerpt cutting (Step 1), `check_render.sh`, contact sheets, SSIM checks, repo/Slack re-encodes (Step 13) | Never re-time the song. Delivery = H.264 + AAC 1080p30 |
+| **Python** (uv, 3.13) | Audio analysis, data files, image tooling | `cd /work && uv run --with librosa python tools/analyze_song.py …`; Pillow for atlases and contact sheets | Analysis numbers are the ground truth for timing (M5) |
+| **Node.js** (22) | Puppeteer tools around the composition | `tools/frames.cjs` (stills at chosen t), `tools/motion_check.cjs` (dance-snap gate) | Same Chrome as the renderer |
+| **AI** | Allowed **around** the pixels: lyric transcription (Scribe/Whisper), structured analysis, the one critic (M8), planning | `tools/transcribe_words.py`; one critic subagent per draft | **Not allowed for pixels:** no AI-generated images, video, textures or 3D models (§1.3). Every pixel comes from code in this repo |
+
+**Choosing a layer:** use three.js for the world, Canvas 2D for the hero and everything drawn by
+hand, SVG plus anime.js for precise vector graphics and type layouts that need easing, and Blender
+for a hero prop that must look physically real. Use Blender for a few signature assets, not the whole
+world. Every Blender asset needs its script in `projects/<slug>/blender/` and its atlas in
+`assets/blender/`, and must be re-renderable with one command written in `storyboard.md`.
+
+**Layer order in `index.html`:** `#gl` (three.js) → `#ov` (Canvas 2D, opaque post pass) → `<svg>`
+→ hidden `<img>` sources and font-warm spans. Put a sprite atlas in a hidden `<img>` so the page load
+waits for it. Then copy it into a natural-size canvas before using it as a WebGL texture (§12).
+
+**Toolbox demo:** `projects/_toolbox-demo/` (6 s, no audio, lint 0/0, validate clean).
+```bash
+bash tools/install_blender.sh
+tools/blender_run.sh tools/blender/card_spin.py -- --out /tmp/card --frames 48 --size 320
+cd /work && uv run --with pillow python repos/vibe/tools/sprite_atlas.py "/tmp/card_*.png" \
+    repos/vibe/projects/_toolbox-demo/assets/blender/card_atlas.png
+cd repos/vibe/projects/_toolbox-demo && hyperframes lint && hyperframes render --output /tmp/demo.mp4
+```
+Expected: a ring of 12 Blender cards orbiting in three.js, a big Blender card spinning in Canvas 2D
+on the beat rings, SVG rays drawn by an anime.js stagger, and a title frame drawn by an anime.js
+stroke. The whole render takes about 15 s.
 
 ## 5. Repo map
 
@@ -124,6 +170,11 @@ tools/                    reusable pipeline tools (all documented in their heade
   luma_report.py              per-second mean luma of a render, with dark stretches flagged (exposure gate)
   motion_check.cjs            per-frame joint travel of the hero over the whole video (dance snap gate)
   check_render.sh             hard gate: codec/size/fps/duration/black runs/audio sync
+  install_blender.sh          Blender 4.2.3 LTS into ~/opt (no root), idempotent
+  blender_run.sh              the Blender runner: headless, factory settings, fails on Python errors
+  blender/card_spin.py        example procedural Blender scene (Cycles CPU, transparent PNG sequence)
+  sprite_atlas.py             PNG sequence -> one atlas PNG + JSON (frame = f(t) playback)
+projects/_toolbox-demo/   6 s proof that three.js + Canvas 2D + SVG + anime.js + Blender atlas work together
 projects/mirror-mirror/   reference implementation (copy its structure for a new song)
   index.html              composition root: canvases, <audio>, scripts, inline timeline registration
   js/song.js              GENERATED: tempo grid, sections, lines + word times, energy, kicks, snares
@@ -137,7 +188,7 @@ projects/mirror-mirror/   reference implementation (copy its structure for a new
   js/main.js              frame loop: reset → shot.apply(ctx) → draw hero → render → overlay
   analysis/               fingerprint, words, lyrics, sections, song.json, story.md
   storyboard.md           the shot list (edit decision list) with the literal reading of each line
-  vendor/ fonts/          three.js r158 UMD, gsap 3.14.2, woff2 fonts (all local)
+  vendor/ fonts/          three.js r158 UMD, gsap 3.14.2, woff2 fonts (all local; add anime.min.js if used)
   assets/song.wav         NOT COMMITTED: produce it in Step 1
 reference/
   ultracode/BREAKDOWN.md  shot-by-shot of the Ultracode video + timestamps + low-res stills
@@ -434,6 +485,16 @@ is a defect we actually shipped in a draft.
 - **End-card tail:** a title card over the last sung word kills the payoff. Make the composition
   the excerpt plus 1.8 s (`#root data-duration`, `U.TOTAL`), keep `<audio data-duration>` at the
   excerpt, and show the title after the music. Run `check_render.sh` with the total duration.
+- **three.js texture from an `<img>` stays black** ("glTexSubImage2D: Offset overflows texture
+  dimensions"). three reads `image.width`, which for a DOM `<img>` is its CSS box, not the bitmap.
+  Copy the bitmap into a canvas of natural size once it has decoded, then texture the canvas.
+- **anime.js v3 does not paint a child's start values until that child has run once.** A seek to a
+  time before a later child's offset shows the element's raw state (the title appeared at 0.5 s).
+  Prime every timeline right after creating it: `tl.seek(END); tl.seek(0)`. `anime.setDashoffset`
+  returns 0 on `<text>`, which has no geometry length. Draw a path or rect and fade the text in instead.
+- **Blender headless:** EEVEE and Workbench need an OpenGL context, so use Cycles on CPU. Apply the
+  scale (`transform_apply`) before parenting text or pips to a scaled object, or the children get
+  squashed. `/opt` is read-only for the sandbox user, so install under `~/opt`.
 - **AAC priming** shifts the audio about 21 ms. That is acceptable (`check_render.sh` allows 30 ms).
 - **Pool limits:** `W.hero()`, `W.text()` and `W.glow()` return `null` when the pool is full.
   Raise the pool size in `stage.js` instead of silently losing objects.

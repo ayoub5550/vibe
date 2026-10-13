@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Toolbox demo: three.js + Canvas 2D + SVG + anime.js + Blender atlas</title>
+    <script src="vendor/gsap.min.js"></script>
+    <script src="vendor/three.min.js"></script>
+    <script src="vendor/anime.min.js"></script>
+    <style>
+      @font-face { font-family: "Big Shoulders Display"; src: url("fonts/BigShoulders-900.woff2") format("woff2"); font-weight: 900; font-display: block; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #070914; }
+      #gl, #ov, #svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      #atlas { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0.01; }
+      .ttl { font-family: "Big Shoulders Display"; font-weight: 900; font-size: 190px; letter-spacing: 18px; }
+      .font-warm { position: absolute; left: 0; top: 0; opacity: 0.01; font-size: 20px; color: #070914; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="6" data-width="1920" data-height="1080">
+      <canvas id="gl" width="1920" height="1080" data-layout-ignore></canvas>
+      <canvas id="ov" width="1920" height="1080" data-layout-ignore></canvas>
+      <svg id="svg" viewBox="0 0 1920 1080" data-layout-ignore>
+        <g transform="translate(960 540)"><g id="rays"></g></g>
+        <rect id="frame" x="560" y="815" width="800" height="230" rx="18" fill="none" stroke="#ff3d6e" stroke-width="5" />
+        <text id="ttl" class="ttl" x="960" y="1000" text-anchor="middle" fill="none" stroke="#ffd36b" stroke-width="4" stroke-opacity="0">TOOLBOX</text>
+      </svg>
+      <img id="atlas" src="assets/blender/card_atlas.png" alt="" data-layout-ignore />
+      <div class="font-warm ttl" data-layout-ignore>TOOLBOX</div>
+    </div>
+    <script src="js/demo.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      DEMO.attachTimeline(tl);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
