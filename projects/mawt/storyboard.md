@@ -18,6 +18,12 @@ graphics, code only. Story, symbols and energy map: [`analysis/story.md`](analys
   a written exception. The colour act sits near the §11 targets.
 - Arabic only on screen, 1–3 words per line (N5). Lalezar for sound effects and punchy words, Amiri 700 for
   the title and credits (both proofed in the HyperFrames Chrome; Amiri needs the ZWJ for «الخصص/الحصص»).
+- **Render with `--no-browser-gpu --workers 6`** (draft: `hyperframes render --quality draft --fps 60
+  --no-browser-gpu --workers 6 --output out/draft1.mp4`, 10 min 22 s for 3537 frames). On this machine
+  HyperFrames' GPU auto-probe picked `--use-angle=gl-egl` (Mesa llvmpipe) and only 3 workers; one worker then
+  hung for more than 5 minutes inside `HeadlessExperimental.beginFrame` at frame 2926 (48.77 s) and the 1-worker
+  retry hung on the same frame. SwiftShader (what `tools/frames.cjs` uses) renders that frame in milliseconds.
+- `tools/luma_report.py` now reads the fps from the file, so its "seconds" are real seconds at 60 fps too.
 - Respect: the row of the dead is shown as white shrouds in a still row at dusk, no wounds, no blood.
 
 ## Shot list (T0(i) = first word of line i − 0.12 s; times in seconds)
