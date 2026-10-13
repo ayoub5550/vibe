@@ -1,7 +1,11 @@
-# vibe: code-only music videos made by AI agents
+# vibe: official-style music videos made by AI agents
 
-Official-style music videos built **only from code** (Three.js + Canvas 2D, rendered frame by frame
-with [HyperFrames](https://hyperframes.heygen.com)), synced to a song, and rendered locally to MP4.
+Official-style music videos for songs and recited poems, synced to the audio and rendered locally to MP4.
+**Since 2026-10-13 every visual asset is AI-generated** (character sheets, keyframes, image-to-video
+footage; see `AGENTS.md` §1.3, M9 and §4c), and code builds the edit around it: timing, sync, typography,
+FX and grading with [HyperFrames](https://hyperframes.heygen.com), Three.js, Canvas 2D, SVG and FFmpeg.
+The first three builds (Mirror Mirror, «الخوف», «الموت الهارب» draft 1) were code-only; the owner
+rejected that look as cartoonish, so the code-only rule is gone. The repo is private.
 The repo started as a remake of the "Ultracode" run from Devarf's experiment
 [*I Had Opus 5.5 Make the Same Music Video at Every Effort*](https://youtu.be/3S4vuHxGh7c).
 

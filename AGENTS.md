@@ -1,4 +1,4 @@
-# AGENTS.md: the strict recipe for a code-only music video
+# AGENTS.md: the strict recipe for an official-style music video (AI-generated assets, code-built edit)
 
 Read this whole file before you touch anything. It is the contract for every agent in this repo
 (Claude Code reads it through `CLAUDE.md`). The rules here come from a finished build: the
@@ -9,9 +9,16 @@ the step and update this file. Do not skip it.
 
 ## 0. What this repo is
 
-- **Goal:** an official-style **music video made only from code** (motion graphics: Three.js +
-  Canvas 2D, rendered frame by frame by HyperFrames). It runs the full length of a song excerpt,
-  stays in sync with the song, and you render it locally to MP4.
+- **Goal:** an official-style **music video**. Every visual asset (characters, worlds, props, textures,
+  footage) is **generated with AI** (§1.3, M9, §4c). Code (HyperFrames + Three.js + Canvas 2D + SVG +
+  FFmpeg) builds the edit: timing, sync, camera moves on stills, typography, transitions, FX, grading.
+  It runs the full length of a song excerpt, stays in sync with the song, and you render it locally to MP4.
+- **Owner rule change (2026-10-13), binding:** the first three builds (Mirror Mirror, khawf, mawt draft 1)
+  were code-only: every pixel drawn by code from primitives, with only free fonts. The owner rejected that
+  look: "very cartoonish… running that looks like dancing, childish content". The code-only rule is
+  **removed**. Assets are **always generated with AI** and are never collected from free, stock or
+  low-quality sources. The older projects below stay as references for the **pipeline** (audio, timing,
+  edit grammar, gates), not for the look.
 - **Origin:** Devarf's experiment *"I Had Opus 5.5 Make the Same Music Video at Every Effort"*
   (https://youtu.be/3S4vuHxGh7c). It used one song, one prompt and six runs. The **Ultracode run**
   (chapter 7:43–9:08; the music starts at **7:48.9**) sets the visual bar: a 2D harlequin Jack on a
@@ -42,17 +49,22 @@ the step and update this file. Do not skip it.
 How to read the brief (binding):
 1. "Official" means one world, one concept, a hero, an arc and a title card. A screensaver does
    not count, and neither does a lyric slideshow.
-2. "Dance **or** story": do both. The hero dances on the beat **and** every lyric line has a
-   literal visual (see §8).
-3. "Motion graphics only" means code draws every pixel: no AI-generated images or video, no stock
-   footage, no photos, no pre-made 3D models. Self-hosted OFL fonts are allowed. A Blender scene
-   counts as code only when a committed Python script builds it from primitives (§4b).
+2. "Dance **or** story": every lyric line has a literal visual (see §8). The hero dances only when the
+   music is dance music. For poetry and spoken word the hero **acts** (grounded, adult body language,
+   real weight), and nobody dances or bounces on the beat. A run must read as a run, not as a dance.
+3. **Assets are always AI-generated (owner rule, 2026-10-13).** Characters, worlds, props, textures,
+   keyframes and footage come from the best available AI image and video models (§4c), designed for
+   this video and reviewed shot by shot. **Never** collect assets from free or stock libraries, clip-art,
+   random web images or random repos. Never substitute code-drawn primitives (stick puppets, flat shapes)
+   for characters or worlds: that is what read as childish. Code still draws what code does best: kinetic
+   type, HUDs, flashes, particles, grading, transitions and camera moves over generated stills. Self-hosted
+   OFL fonts are fine for type. Blender is optional and only for things AI cannot do (exact geometry).
 4. "Work alone" means you never stop to ask. Make the decision, write it into `storyboard.md`
    or `analysis/story.md`, and keep going.
 
 ## 2. Definition of done (every box must be true)
 
-- [ ] `out/<name>.mp4` is **1920×1080, 30 fps, H.264 + AAC**. Duration = excerpt (+ an optional
+- [ ] `out/<name>.mp4` is **1920×1080, 30 fps (or the fps the owner asked for: mawt is 60), H.264 + AAC**. Duration = excerpt (+ an optional
       end-card tail of ≤ 2 s), within 0.1 s.
 - [ ] The audio is the **unaltered song excerpt**, starting at frame 0 and in sync:
       `tools/check_render.sh` prints `RENDER CHECK: PASS` (envelope correlation > 0.9, lag ≤ 30 ms).
@@ -62,6 +74,9 @@ How to read the brief (binding):
 - [ ] There are no unintended black runs ≥ 0.5 s, no frozen stretches > 1 s, no flicker and no
       missing-font fallback text.
 - [ ] **Deterministic:** each frame is a pure function of `t`. Rendering twice gives the same frames.
+      (AI generation itself is not deterministic, so every generated file is kept and listed with its
+      prompt and model in `assets/ai/manifest.json`; the render from those files is deterministic.)
+- [ ] **Every visual asset is AI-generated** (M9) and listed in the manifest. No stock, no scraped images.
 - [ ] `hyperframes lint` reports 0 errors. `hyperframes validate --no-contrast` reports 0 errors.
 - [ ] You looked at a full-video contact sheet (2 fps) yourself, and one independent critic
       reviewed the draft. All P0/P1 findings are fixed or written up as deliberate.
@@ -86,19 +101,29 @@ How to read the brief (binding):
 - M7. Review rendered frames with your own eyes (`view_image`) before every full render.
 - M8. Keep cost under control: one agent builds the whole video, and at most **one** critic subagent
   reviews each draft. This is the Ultracode lesson (§13).
+- M9. **Generate every visual asset with AI** (§4c): character sheets first, then keyframes that use the
+  sheets as reference images, then image-to-video clips from the approved keyframes. Look at every
+  generated image and clip yourself (`view_image` on stills or contact sheets) and regenerate anything
+  off-model, childish, malformed (hands, faces, text) or off-brief. Log every file with model, prompt,
+  reference images and cost in `assets/ai/manifest.json`.
 
 **MUST NOT**
 - N1. No `Math.random()`, `Date.now()`, `performance.now()`, `requestAnimationFrame` loops, CSS
-  animations or transitions, `setTimeout`/`setInterval` animation, video elements or GIFs.
+  animations or transitions, `setTimeout`/`setInterval` animation or GIFs. AI footage enters the
+  composition only as HyperFrames clips (`<video muted playsinline data-start … data-media-start …>`,
+  which the framework seeks frame by frame) or pre-cut into one base plate with FFmpeg (§4c).
   HyperFrames seeks frames **out of order across parallel workers**, so any state that builds up
   over time will break.
 - N2. Do not query the DOM at the top level of a script. The HyperFrames compiler may hoist scripts
   above `<body>`. Look canvases up lazily on the first render (see `main.js` → `build()`).
 - N3. Do not put the `window.__timelines` registration in an external file. The linter only finds it
   **inline** in `index.html`.
-- N4. Do not commit `assets/song.*`, recordings of other people's videos, or renders other than the
-  final reference MP4. The repo is public. The song is from the YouTube Audio Library, which allows
-  use inside videos but not standalone redistribution.
+- N4. Size, not licence, limits what goes into git. **The repo is private since 2026-10-13 and the owner
+  confirmed that all licences are covered**, so the song excerpt, the final MP4, approved AI keyframes and
+  character sheets may be committed. GitHub rejects files over 100 MB and warns above 50 MB: keep raw AI
+  video clips and `--quality high` masters out of git (`/work/data/vibe/<slug>/` or the cloud store, listed
+  in `assets/ai/manifest.json`), commit the < 50 MB repo copy (Step 13), and store stills as JPG
+  (about 1600 px, q 88). Never commit secrets or API keys.
 - N5. No karaoke. Show at most 1–3 key words per line as kinetic type, never the full lyric line.
 - N6. Do not end on a fade to black over the last sung word. End on the concept resolving, then a title card.
 
@@ -133,14 +158,15 @@ plays by itself (N1).
 | **SVG** | Crisp vector layers: line art, rays, frames, diagrams, logo/title outlines | Inline `<svg viewBox="0 0 1920 1080">` above the canvases (`_toolbox-demo`) | Animate attributes only from `t`, via anime.js `seek` or your own code. No SMIL `<animate>`, no CSS animation |
 | **anime.js** (v3.2.2, MIT, vendored `vendor/anime.min.js`) | Easing, staggers, SVG stroke draws and morphs on DOM/SVG layers | `anime.timeline({ autoplay: false })`, then `tl.seek(t * 1000)` inside your `renderAt(t)`. HyperFrames also has a built-in anime.js adapter (`window.__hfAnime`), but one clock is simpler | **Prime it** right after building: `tl.seek(END); tl.seek(0)` (§12). Stroke draws (`anime.setDashoffset`) work on path/rect/line/circle, **not `<text>`** |
 | **web engine** (headless Chrome + HyperFrames 0.6.119) | Runs the composition, seeks each frame, captures it, muxes the audio | `hyperframes lint`, `validate --no-contrast`, `render`. Chrome is `/usr/local/bin/hyperframes-chrome` | Frames render out of order across workers. Proof: the demo renders identically with `-w 1` and `-w 6` (SSIM 0.9998) |
-| **Blender** (4.2.3 LTS, CPU) | Real 3D objects you cannot fake in 2.5D: bevelled cards, glass, cloth, fluids, hard-surface props | `bash tools/install_blender.sh` (≈20 s, no root, installs under `~/opt`). Write a Python scene script like `tools/blender/card_spin.py` | Build the scene **only from code**: no downloaded models, HDRIs or textures. Render with **Cycles on CPU**, because EEVEE/Workbench need OpenGL and fail headless. Fixed `cycles.seed`, `use_animated_seed=False`, linear keys, `film_transparent=True`, view transform `Standard` |
+| **Blender** (4.2.3 LTS, CPU) | Real 3D objects you cannot fake in 2.5D: bevelled cards, glass, cloth, fluids, hard-surface props | `bash tools/install_blender.sh` (≈20 s, no root, installs under `~/opt`). Write a Python scene script like `tools/blender/card_spin.py` | Build the scene from a committed script. Textures and HDR-like backdrops may be AI-generated (§4c); never downloaded free models, HDRIs or textures. Render with **Cycles on CPU**, because EEVEE/Workbench need OpenGL and fail headless. Fixed `cycles.seed`, `use_animated_seed=False`, linear keys, `film_transparent=True`, view transform `Standard` |
 | **Blender runner** | Runs any Blender script headless and reproducibly | `tools/blender_run.sh <script.py> -- <args>` (`-b --factory-startup -noaudio`, exits non-zero on a Python error). Example: 48 frames of 320² in about 5 s on 17 CPUs | Blender outputs a **PNG sequence**, never the final video. Pack it with `tools/sprite_atlas.py` and draw frame `floor(t·fps) % N` (Canvas 2D `drawImage` sub-rect, or a three.js texture with `repeat`/`offset`) |
 | **FFmpeg** (5.1) | Encode, cut, probe and compare | Excerpt cutting (Step 1), `check_render.sh`, contact sheets, SSIM checks, repo/Slack re-encodes (Step 13) | Never re-time the song. Delivery = H.264 + AAC 1080p30 |
 | **Python** (uv, 3.13) | Audio analysis, data files, image tooling | `cd /work && uv run --with librosa python tools/analyze_song.py …`; Pillow for atlases and contact sheets | Analysis numbers are the ground truth for timing (M5) |
 | **Node.js** (22) | Puppeteer tools around the composition | `tools/frames.cjs` (stills at chosen t), `tools/motion_check.cjs` (dance-snap gate) | Same Chrome as the renderer |
-| **AI** | Allowed **around** the pixels: lyric transcription (Scribe/Whisper), structured analysis, the one critic (M8), planning | `tools/transcribe_words.py`; one critic subagent per draft | **Not allowed for pixels:** no AI-generated images, video, textures or 3D models (§1.3). Every pixel comes from code in this repo |
+| **AI (assets: required)** | **Every visual asset**: character sheets, keyframes, backgrounds, textures, footage (§1.3, M9). Also lyric transcription, analysis, the one critic (M8) | Viktor SDK: `coworker_text2im` (images) and `text_to_video` (image-to-video), recipe in §4c; `tools/transcribe_words.py` | Generated assets only, never free/stock/scraped. Review every output with your own eyes and log it in `assets/ai/manifest.json` |
 
-**Choosing a layer:** use three.js for the world, Canvas 2D for the hero and everything drawn by
+**Choosing a layer (since 2026-10-13):** the picture comes from AI assets (§4c). Code layers sit on top
+or around them. The older guidance below applies to code-drawn layers only. Use three.js for the world, Canvas 2D for the hero and everything drawn by
 hand, SVG plus anime.js for precise vector graphics and type layouts that need easing, and Blender
 for a hero prop that must look physically real. Use Blender for a few signature assets, not the whole
 world. Every Blender asset needs its script in `projects/<slug>/blender/` and its atlas in
@@ -161,6 +187,44 @@ cd repos/vibe/projects/_toolbox-demo && hyperframes lint && hyperframes render -
 Expected: a ring of 12 Blender cards orbiting in three.js, a big Blender card spinning in Canvas 2D
 on the beat rings, SVG rays drawn by an anime.js stagger, and a title frame drawn by an anime.js
 stroke. The whole render takes about 15 s.
+
+## 4c. AI asset pipeline (owner rule since 2026-10-13: every asset is AI-generated)
+
+Tools (Viktor SDK, `from sdk.tools.utils_tools import coworker_text2im, text_to_video`; scripts run with
+`cd /work && uv run python …`):
+- **Images:** `coworker_text2im(prompt, image_paths=[refs…], aspect_ratio="3:2")`. The default model
+  (`gpt-image-2.5-sunburst`) is the quality choice. Use `gemini-nano-banana-2.1` as a second opinion
+  when a character drifts. 3:2 output is cropped to 16:9 and upscaled to 1920×1080 with Lanczos.
+- **Video:** `text_to_video(prompt, model=…, image_paths=[keyframe], aspect_ratio="16:9", duration_seconds=N)`.
+  Image-to-video from an approved keyframe keeps the design on-model. The response has
+  `usd_cost_estimate`: log it.
+- **Nothing else.** No free/stock/clip-art libraries, no scraped images, no code-drawn stand-ins for
+  characters or worlds.
+
+Order of work (each step has a gate you check with `view_image`):
+1. **Style bible** in `storyboard.md`: the look in one paragraph (medium, studio references, line, light,
+   palette, mood), plus what is forbidden (for a serious poem: chibi, big-eyed cute faces, bouncing,
+   dancing, toy-like props, flat clip-art). Prompts reuse this paragraph word for word.
+2. **Character sheets** for the hero and the antagonist (front, three-quarter, profile, close-up of the
+   face, costume details) on a plain background. Gate: adult proportions, the same face in every view,
+   readable silhouette, nothing childish.
+3. **Keyframes**, one per shot, each generated with the sheets passed as `image_paths`. Gate: on-model,
+   the line's literal image reads with the sound off, hands and faces are correct, no garbage text
+   (put all type in code, never in the generated image).
+4. **Motion:** image-to-video for shots that need acting or physical motion (cloth, smoke, a run, a
+   turn). Camera moves over a still (push, pan, parallax) are cheaper and exact when done in code at the
+   project fps. Prompts describe ONE clear action and the camera, and end with the style paragraph and
+   "no dancing, no bouncing, no text". Gate: watch a contact sheet of every clip and reject morphing,
+   extra limbs, cartoon timing or drift off-model.
+5. **Conform:** cut each clip to its shot length with FFmpeg, then bring it to the project fps.
+   Generated video is usually 24 fps; for 60 fps use motion interpolation (the exact command and its
+   measured cost are in the project's `BUILD.md`).
+6. **Composite in HyperFrames:** footage as muted clips or one base plate, then the code layers (Arabic
+   kinetic type, impact frames, speed lines, screentone, flashes, grading, title card), so the
+   §2/§11 gates still apply.
+7. **Manifest** `assets/ai/manifest.json`: one entry per file with `file, kind, model, prompt, refs,
+   seconds, usd, approved`. This is what makes a non-deterministic generator reproducible enough to
+   rebuild the video.
 
 ## 5. Repo map
 
@@ -354,9 +418,8 @@ gave 90 MB. Always `-preset slow`, `-pass 1` then `-pass 2`, `-c:a aac -b:a 192k
 then run the check again on the re-encoded file. Send the user a CRF 18 copy: it looks better and
 Slack takes up to 1 GB (khawf's grainy parchment made CRF 18 575 MB, and the upload still worked).
 Copy the MP4 and its 1 fps contact sheets (JPG, about 1800 px wide) to `reference/<slug>/`, commit,
-and deliver the MP4 with a short note on the concept and the process. If the soundtrack is a
-third-party recording, commit only the sheets and ask the owner about the MP4 (N4). For khawf the owner
-said yes (2026-10-13), so `reference/khawf/khawf.mp4` is committed.
+and deliver the MP4 with a short note on the concept and the process. The repo is private and the
+owner covers the licences (N4), so the < 50 MB MP4 is always committed.
 
 ## 7. Engine contract (as implemented in `projects/mirror-mirror`)
 
@@ -440,6 +503,9 @@ pops a word in at a sung time `t0 = U.findWord("word", after)`, with overshoot.
 6. **Escalation and payoff:** set pieces grow toward hook 3. The finale resolves the idea, then the title card.
 
 ## 10. Choreography rules
+**Poetry and spoken word: no dance.** The owner rejected mawt draft 1 because the hero's run "looked like
+dancing" and the whole thing felt childish. For a poem, the hero acts like an adult in a film: weight,
+stillness, small gestures, real runs from generated footage. The rules below are for dance songs only.
 - There is always a move on the beat unless the line is a story beat (pray, bow, fall). A pose
   change is a hit, so put one on the downbeat of each bar at least.
 - Match the move to the words: `run` on "runnin'", `count` on "count", `pray` on "pray",
@@ -554,6 +620,9 @@ is a defect we actually shipped in a draft.
   Raise the pool size in `stage.js` instead of silently losing objects.
 
 ## 13. Cost discipline: the Ultracode lesson
+AI generation costs real money per call. Plan the shot list first, generate keyframes (cheap) before
+clips (expensive), approve each keyframe before animating it, prefer code camera moves over stills when
+no acting is needed, and log `usd_cost_estimate` per file in the manifest.
 Devarf's runs used Claude Code 2.1.287 with Opus 5.5 in the terminal (2–4 Oct 2026), a folder per
 run with info and tools (three.js, Canvas 2D, SVG, frame-to-video), his own audio-analysis tool
 (beats, notes, instruments, loud/quiet, lyrics, a story note), and no guides or examples.
