@@ -1,0 +1,6 @@
+[
+ {"name": "s1_mirror", "beats": [0, 45], "feel": "drone pad, voice declamatory and gloating; the old king is shown his reflection and his fall"},
+ {"name": "s2_portrait", "beats": [45, 111], "feel": "longest stanza, darker pad, longer pauses (73-85 s); portrait of fear as it was: whips, beast, the guest with blood"},
+ {"name": "s3_mercy", "beats": [111, 162], "feel": "voice softens, slower; pity and generosity toward the tired old man, the mother's fear"},
+ {"name": "s4_mirrors", "beats": [162, 210], "feel": "resolve: fear dressed up for the children, we are your mirrors, the abyss, the ring-closing first line; pad swells 161-164 s and ends 166.4 s"}
+]

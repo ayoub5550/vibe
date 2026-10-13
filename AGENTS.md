@@ -23,6 +23,12 @@ the step and update this file. Do not skip it.
   size, motion, finale, walls, typography. The final fixes the P0s and most P1s.
   To make a new video, copy its **architecture and process**. Do not copy its imagery unless the
   song is the same.
+- **Second project: `projects/khawf/`**, «الخوف» (Fear), a poem by Tamim Al-Barghouti recited over a
+  beatless drone (167.4 s). It is a shadow-play (خيال الظل) world with a leather-puppet Sultan who ages,
+  Blender props and Arabic type. It shows how to handle **spoken word / poetry**: the beat grid comes
+  from the metre (`tools/voice_pulse.py`, Step 3b), cuts land on hemistichs, and the type is RTL.
+  Build history: draft 1 scored 5/10 with one P0 (the Ruqaa font dropped its dots). The critic report is
+  in `reference/khawf/`, and the fixes are listed at the end of its `storyboard.md`.
 
 ## 1. The brief (what the original prompt asked; it is your spec too)
 
@@ -168,6 +174,7 @@ tools/                    reusable pipeline tools (all documented in their heade
   frames.cjs                  render chosen still frames (MV.renderAt) to PNG, ~1 s/frame
   contact_sheet.py            tile frames or a video into labelled contact sheets
   luma_report.py              per-second mean luma of a render, with dark stretches flagged (exposure gate)
+  voice_pulse.py              beat grid from the voice/metre for beatless poetry (Step 3b)
   motion_check.cjs            per-frame joint travel of the hero over the whole video (dance snap gate)
   check_render.sh             hard gate: codec/size/fps/duration/black runs/audio sync
   install_blender.sh          Blender 4.2.3 LTS into ~/opt (no root), idempotent
@@ -222,8 +229,9 @@ Copy the reference skeleton (`index.html`, `js/`, `vendor/`, `fonts/`, `hyperfra
   (end of a hook). Never cut mid-word.
 - Make a fingerprint so the next agent can find the same excerpt again:
   `uv run --with librosa python $T/align_excerpt.py fingerprint $P/assets/song.wav $P/analysis/fingerprint.json`.
-- Do not use yt-dlp or downloader sites from this sandbox. YouTube's bot wall blocks them.
-  Use the browser capture tool.
+- YouTube audio: try `yt-dlp -f 251` (opus audio only) first. For khawf it worked on 2026-10-13 while
+  the browser capture hit the bot wall. If yt-dlp is blocked too, use the browser capture tool. Either
+  way, the recording is for private study and is never committed (N4).
 **Gate:** `ffprobe` gives the exact duration. The first sung word is at the expected time.
 
 ### Step 2: Lyrics with word timestamps → `analysis/words.json`, `analysis/lyrics.txt`
@@ -252,6 +260,14 @@ Copy the reference skeleton (`index.html`, `js/`, `vendor/`, `fonts/`, `hyperfra
 **Gate:** `grid_contrast ≥ 1.3`, snares `on_grid ≥ 0.6`, and at least half of the lyric-line onsets
 lie within ±0.05 s of a beat or half-beat. Mirror Mirror: 67% (59% on whole beats). If the grid
 fails, it is the wrong tempo or the wrong phase. Fix the grid; do not nudge the shots.
+
+### Step 3b: No beat in the music (poetry, spoken word)
+If `analyze_song.py` gives `on_grid` near chance (about 0.1 for every band) and no autocorrelation
+peak, the bed is a drone. Do not force a BPM. Use the voice as the clock instead:
+`uv run --with librosa python $T/voice_pulse.py song.wav words.json lyrics.txt --feet 3 --out analysis/song_raw.json`.
+It puts N beats (the feet of the metre) across every line, so `MV.SONG.beats` becomes a variable list
+that `U.beatAt` / `U.tb` interpolate. Every line starts on a beat, kicks are the word onsets and snares
+are the line onsets. khawf: al-munsarih, 3 feet per hemistich, 210 beats of 0.49–1.42 s.
 
 ### Step 4: Sections → `analysis/sections.json`, then `js/song.js`
 - Read `beat_energy` (one value per beat) and the line starts. Mark section boundaries where
@@ -309,7 +325,7 @@ cd $P && hyperframes lint && hyperframes validate --no-contrast
 hyperframes render --quality draft --output out/draft1.mp4          # ~3 min here (~2400 frames)
 bash $T/check_render.sh out/draft1.mp4 <duration> assets/song.wav
 python3 $T/luma_report.py out/draft1.mp4
-python3 $T/contact_sheet.py video out/draft1.mp4 out/d1 --fps 2 --cols 6
+python3 $T/contact_sheet.py video out/draft1.mp4 out/d1 --fps 2 --cols 6   # writes out/d1_01.png …
 ```
 **Gate:** `RENDER CHECK: PASS`, the luma report is within §11 targets (or each exception is
 deliberate), and you have viewed all the contact sheets.
@@ -325,12 +341,15 @@ hyperframes render --quality high --output out/<slug>.mp4
 bash $T/check_render.sh out/<slug>.mp4 <total_s> assets/song.wav      # total = excerpt + tail
 ```
 `--quality high` writes about 41 Mbps (402 MB for 81 s here), so always re-encode the repo copy
-to under 50 MB. GitHub warns above 50 MB and rejects files over 100 MB. Use a 2-pass x264 at 4.1 Mbps
-(`-preset slow -b:v 4100k -maxrate 6500k -bufsize 9000k`, `-pass 1` then `-pass 2`, `-c:a aac -b:a 192k
--movflags +faststart`), then run the check again on the re-encoded file. Send the user a CRF 18 copy:
-it looks better and Slack takes up to 1 GB. Copy the MP4 and its 1 fps contact sheets (JPG, about
-1800 px wide) to `reference/<slug>/`, commit, and deliver the MP4 with a short note on the concept
-and the process.
+to under 50 MB. GitHub warns above 50 MB and rejects files over 100 MB. Use a 2-pass x264 sized to
+the length: video kbps ≈ 380000 / seconds − 192. For 81 s that is `-b:v 4100k -maxrate 6500k
+-bufsize 9000k`; khawf (167 s) needed `-b:v 2050k -maxrate 3500k -bufsize 5000k`, because 4.1 Mbps
+gave 90 MB. Always `-preset slow`, `-pass 1` then `-pass 2`, `-c:a aac -b:a 192k -movflags +faststart`,
+then run the check again on the re-encoded file. Send the user a CRF 18 copy: it looks better and
+Slack takes up to 1 GB (khawf's grainy parchment made CRF 18 575 MB, and the upload still worked).
+Copy the MP4 and its 1 fps contact sheets (JPG, about 1800 px wide) to `reference/<slug>/`, commit,
+and deliver the MP4 with a short note on the concept and the process. If the soundtrack is a
+third-party recording, commit only the sheets and ask the owner about the MP4 (N4).
 
 ## 7. Engine contract (as implemented in `projects/mirror-mirror`)
 
@@ -460,7 +479,34 @@ is a defect we actually shipped in a draft.
   other shots and fallback fonts.
 
 ## 12. Pitfalls that cost real time (avoid them)
-- **YouTube from the sandbox:** yt-dlp and timedtext are bot-walled. Use `capture_youtube_segment.py`
+- **Arabic type:** Aref Ruqaa looks great but drops dots in Chrome. Its final qaf is a single contour,
+  so «حق» rendered as «حه», and the khah dot of «الخوف» vanished. A critic caught this as a P0 in khawf
+  draft 1. Before you commit to a font, render a proof page of **every** key word in the HyperFrames
+  Chrome (`/usr/local/bin/hyperframes-chrome`) and zoom in. Amiri 700 is safe. Its lam + jeem/hah/khah
+  ligature stacks the letters (it reads «انخوف»), so insert a ZWJ after the lam (`O.shape` in
+  `projects/khawf/js/overlay.js`). Canvas text needs `direction = "rtl"`. A word reveal that uses a hard
+  clip slices the glyphs, so reveal through a feathered gradient mask on a scratch canvas
+  (`destination-in`).
+- **Bright worlds (paper, backlit screens, snow):** the §11 luma targets assume a dark stage. A backlit
+  parchment is a legitimate look, but the midtone lift (screening the frame with itself) plus additive
+  bloom clip it to flat white and swallow every pale object (khawf draft 1: 10–21 % of pixels above 250).
+  Tone-map the backdrop texture (centre ≈ 215, edges ≈ 140, visible fibre), cap lift and bloom while it is
+  on screen, measure the **share of pixels above 245 (< 3 %)** as well as the mean, and write the bright
+  target into the storyboard as a deliberate exception. On a bright backdrop, pale type must become dark
+  ink with a light rim, and dark text plates look like smudges, so use a warm halo instead.
+- **Canvas paths survive across frames.** `save()`/`restore()` do not reset the current path. Any
+  `fill()` without a `beginPath()` first also fills whatever path the previous frame left behind
+  (khawf's title card filled a word plate from another shot). Frames render out of order on parallel
+  workers, so this is nondeterministic. Always `beginPath()` before a path helper.
+- **Profile puppets (heads facing +x):** knees bend forward only. Mirror Mirror's frontal-dancer clamp
+  (`lShin ≤ 12°`, `rShin ≥ −12°`) gave khawf's puppets backward knees, X-legs when running, and a kneel
+  that could not kneel. khawf `solve()` sets `knee = −|knee|`. Write runs as a gallop with the same leg
+  always leading so the shins never cross.
+- **Age/costume arcs:** if the hero ages, make age a monotonic function of time, and mark any look
+  back as the past (khawf tints stanza 2 sepia). A critic will flag a black beard returning between
+  grey shots.
+- **YouTube from the sandbox:** yt-dlp and timedtext are often bot-walled (format 251 got through for
+  khawf on 2026-10-13, so try it first). Otherwise use `capture_youtube_segment.py`
   (Viktor browser with proxy, MediaRecorder on the `<video>`, start playback with a click and the
   player API, seek with `player.seekTo`). Captions come from the player's own timedtext response.
 - **WebGL here is SwiftShader (CPU).** Keep the reflection target ≤ 960×540. Do bloom on the 2D
@@ -475,7 +521,8 @@ is a defect we actually shipped in a draft.
 - **Three.js:** use the r158 UMD `three.min.js` (vendored). Cache text and card textures by key,
   and never create a texture per frame.
 - **Workers:** `--workers 12` still ran 6 here. A draft takes about 3 min (60 MB). A `--quality high`
-  render takes about 4 min 50 s (402 MB, about 41 Mbps).
+  render takes about 4 min 50 s (402 MB, about 41 Mbps). khawf (5022 frames, heavier canvases, 5 workers)
+  took about 8 min as a draft and about 10 min at high quality (999 MB, about 48 Mbps).
 - **The 2D overlay must be opaque.** Start it by copying the GL frame (`O.begin` → `copy`), then
   composite bloom, flashes and HUDs on top. Draft 1 drew bloom onto a transparent overlay: the
   crushed-black pixels of the bloom buffer veiled the whole frame at the bloom alpha, a hidden
