@@ -28,3 +28,8 @@ Limelight and Josefin Sans (SIL OFL). Libraries: three.js (MIT), GSAP.
 **بالعربية:** هذا المستودع يصنع فيديوهات موسيقية رسمية الطابع بالكود فقط (موشن جرافيك ثلاثي/ثنائي الأبعاد) وتُرندَر محلياً.
 على كل وكيل ذكاء اصطناعي أن يقرأ `AGENTS.md` كاملاً قبل أي عمل. فيه الوصفة الصارمة خطوة بخطوة، مع شروط القبول والأخطاء التي يجب تجنبها.
 المرجعان هما فيديو Ultracode (مع تفكيك لقطاته) وفيديو Mirror Mirror الذي صُنع هنا.
+
+
+## Watch
+- Full-quality render (Google Drive): https://drive.google.com/file/d/15uVnFPUiNHsTS45HzXr_gxqQuAkzo_ZM/view
+- Publishing kit (YouTube title, description, tags): [reference/mirror-mirror/YOUTUBE.md](reference/mirror-mirror/YOUTUBE.md)
