@@ -17,7 +17,10 @@ the step and update this file. Do not skip it.
   (chapter 7:43–9:08; the music starts at **7:48.9**) sets the visual bar: a 2D harlequin Jack on a
   3D stage built from playing cards. A shot-by-shot breakdown is in `reference/ultracode/BREAKDOWN.md`.
 - **Reference implementation:** `projects/mirror-mirror/` (same song, same brief), rendered to
-  `reference/mirror-mirror/mirror-mirror.mp4`. Its edit is in `projects/mirror-mirror/storyboard.md`.
+  `reference/mirror-mirror/mirror-mirror.mp4` (81 s: the 79.22 s song plus a 1.8 s title tail). Its
+  edit is in `projects/mirror-mirror/storyboard.md`. Build history: draft 1 scored 5/10 against
+  Ultracode with one critic. Everything §11 now demands comes from that critique: exposure, hero
+  size, motion, finale, walls, typography. The final fixes the P0s and most P1s.
   To make a new video, copy its **architecture and process**. Do not copy its imagery unless the
   song is the same.
 
@@ -58,7 +61,8 @@ How to read the brief (binding):
 ## 3. Hard rules
 
 **MUST**
-- M1. One HyperFrames project per video, in `projects/<slug>/`. The composition length equals the excerpt length.
+- M1. One HyperFrames project per video, in `projects/<slug>/`. The composition length equals the
+  excerpt length, plus an optional title tail of up to 2 s after the music.
 - M2. Frame = f(t). All motion comes from `t` (seconds) or beat `b = (t − beat_offset) / beat_period`.
   "Random" values come from seeded hashes (`U.hash(i, j)`, `U.rng(seed)`, `U.noise1(x, seed)`).
   Particles are closed-form functions of `t` (life cycles via modulo), never integrated step by step.
@@ -118,6 +122,7 @@ tools/                    reusable pipeline tools (all documented in their heade
   frames.cjs                  render chosen still frames (MV.renderAt) to PNG, ~1 s/frame
   contact_sheet.py            tile frames or a video into labelled contact sheets
   luma_report.py              per-second mean luma of a render, with dark stretches flagged (exposure gate)
+  motion_check.cjs            per-frame joint travel of the hero over the whole video (dance snap gate)
   check_render.sh             hard gate: codec/size/fps/duration/black runs/audio sync
 projects/mirror-mirror/   reference implementation (copy its structure for a new song)
   index.html              composition root: canvases, <audio>, scripts, inline timeline registration
@@ -136,7 +141,7 @@ projects/mirror-mirror/   reference implementation (copy its structure for a new
   assets/song.wav         NOT COMMITTED: produce it in Step 1
 reference/
   ultracode/BREAKDOWN.md  shot-by-shot of the Ultracode video + timestamps + low-res stills
-  mirror-mirror/          our final render + its contact sheet
+  mirror-mirror/          our final render, its contact sheets and the draft-1 critic report
 ```
 
 ## 6. The pipeline (in order; each step has an output and a gate)
@@ -243,12 +248,14 @@ python3 $T/contact_sheet.py frames /work/temp/frames /work/temp/sheet
 ```
 Then open the sheets with `view_image`. Check each frame against the §11 checklist, fix, and
 re-render only the frames you changed. `PAGEERROR` lines in the output are bugs.
-**Gate:** every shot passes §11.
+Then check the dance motion over the whole video (pose only, so it takes seconds):
+`node $T/motion_check.cjs $P 0-<duration>` prints `PASS` when no joint teleports.
+**Gate:** every shot passes §11, and `motion_check` says PASS.
 
 ### Step 11: Draft render + hard gate
 ```bash
 cd $P && hyperframes lint && hyperframes validate --no-contrast
-hyperframes render --quality draft --output out/draft1.mp4          # ~3 min here (2377 frames)
+hyperframes render --quality draft --output out/draft1.mp4          # ~3 min here (~2400 frames)
 bash $T/check_render.sh out/draft1.mp4 <duration> assets/song.wav
 python3 $T/luma_report.py out/draft1.mp4
 python3 $T/contact_sheet.py video out/draft1.mp4 out/d1 --fps 2 --cols 6
@@ -264,16 +271,21 @@ and P2 (polish). Fix P0 and P1, re-check those frames, and render again.
 ### Step 13: Final render + delivery
 ```bash
 hyperframes render --quality high --output out/<slug>.mp4
-bash $T/check_render.sh out/<slug>.mp4 <excerpt_s> assets/song.wav
+bash $T/check_render.sh out/<slug>.mp4 <total_s> assets/song.wav      # total = excerpt + tail
 ```
-If the file is over 45 MB, re-encode (`ffmpeg -i in.mp4 -c:v libx264 -crf 22 -preset slow -c:a copy out.mp4`)
-and run the check again. GitHub rejects files over 100 MB. Copy the MP4 and one 2 fps contact sheet to
-`reference/<slug>/`, commit, and deliver the MP4 with a short note on the concept and the process.
+`--quality high` writes about 41 Mbps (402 MB for 81 s here), so always re-encode the repo copy
+to under 50 MB. GitHub warns above 50 MB and rejects files over 100 MB. Use a 2-pass x264 at 4.1 Mbps
+(`-preset slow -b:v 4100k -maxrate 6500k -bufsize 9000k`, `-pass 1` then `-pass 2`, `-c:a aac -b:a 192k
+-movflags +faststart`), then run the check again on the re-encoded file. Send the user a CRF 18 copy:
+it looks better and Slack takes up to 1 GB. Copy the MP4 and its 1 fps contact sheets (JPG, about
+1800 px wide) to `reference/<slug>/`, commit, and deliver the MP4 with a short note on the concept
+and the process.
 
 ## 7. Engine contract (as implemented in `projects/mirror-mirror`)
 
 **index.html**
-- `#root` has `data-composition-id="main" data-start="0" data-duration="<excerpt>" data-width="1920" data-height="1080"`.
+- `#root` has `data-composition-id="main" data-start="0" data-duration="<excerpt + tail>" data-width="1920" data-height="1080"`
+  (Mirror Mirror: 79.22 + 1.8 = 81.02, which `U.TOTAL` in util.js mirrors).
 - Two canvases: `#gl` (Three.js, `preserveDrawingBuffer: true`) and `#ov` (2D overlay drawn on top).
 - `<audio id="song" src="assets/song.wav" data-start="0" data-duration="<excerpt>" data-track-index="0" data-volume="1">`.
   The renderer muxes it.
@@ -281,29 +293,34 @@ and run the check again. GitHub rejects files over 100 MB. Copy the MP4 and one 
   → shots → main). After them comes the **inline** registration:
   `const tl = gsap.timeline({paused:true}); MV.attachTimeline(tl); window.__timelines["main"] = tl;`
 
-**Per-frame algorithm (`MV.renderAt(t)` in main.js)**
+**Per-frame algorithm (`MV.renderAt(t, opt)` in main.js; `opt.poseOnly` stops after step 5 and is used by `motion_check.cjs`)**
 1. Clamp `t`. On the first call, build the world (fonts are ready by then).
 2. `W.reset()` hides every pooled object and restores defaults.
 3. Find the active shot (`t0 ≤ t`). Build `ctx = {t, b, lt, lb, dur, k, choreo, pose, post, overlay}`,
    where `k` is the shot progress from 0 to 1 and `lb` is the local beat.
 4. `shot.apply(ctx)` places the camera, sets, hero instances, words, glows and post settings,
    and pushes overlay draw functions.
-5. Hero pose = `ctx.pose`, or `MV.choreoPose(ctx.choreo, b)`. Lip sync opens the mouth from word
+5. Hero pose = `ctx.pose`, or `MV.choreoPose(ctx.choreo, b)`, plus the **groove layer**: a knee
+   dip on every beat, hip sway and weight shift. It is full strength after the drop, 0.6 before it
+   and 0.2 on static story poses; `ctx.groove` overrides it. Lip sync opens the mouth from word
    timestamps (a vowel group counts as a syllable). Blinks come every 3.3 s for 0.12 s.
    Draw the hero to its canvas, then draw the blue shadow twin to the second canvas.
 6. `W.render()` billboards the heroes and glows, then renders. The mirror floor re-renders the scene
    reflected, with glows dimmed (`onPreReflect`).
-7. Overlay: bloom → glitch → shot overlays (HUDs, credits, counters, quotes) → letterbox →
-   vignette → grain → flash.
+7. Overlay (opaque): copy the GL frame and apply the midtone lift (`post.lift`) → bloom → glitch →
+   shot overlays (HUDs, credits, counters, quotes, the finale close-up) → letterbox → vignette →
+   grain → flash (colour-dodge, or black for fades).
 - HyperFrames drives this from both the paused GSAP proxy tween (`onUpdate → renderAt(proxy.t)`)
   and the `hf-seek` window event (`e.detail.time`). Rendering the same `t` twice is a no-op.
 
 **Hero (2D puppet on a 3D billboard).** It is drawn on Canvas 2D at 720×1180 px with the ground at y = 1150.
 A pose is plain data: angles in degrees (`torso, head, lSh, lEl, rSh, rEl, lHip, lKnee, rHip, rKnee`),
 plus `shift, air, squash, spin`, hand shapes (`open | fist | point | limp`) and `mouth` and `eyes`.
-`MV.MOVES` are beat-looped key lists (`[beatOffset, pose, ease]`). A move **snaps into the next
-pose in the first 45% of the segment, then holds**, which is what reads as dancing on the beat.
-`ctx.choreo = [{b, move|pose}, …]` sequences moves on absolute beats with a 0.35-beat crossfade.
+`MV.MOVES` are beat-looped key lists (`[beatOffset, pose, ease]`). A key pose is **reached ON its
+beat**: the transition starts 0.3 beat before and settles 0.22 beat after, with a gentle
+anticipation/overshoot ease (`inOutBack`), and the pose holds between hits. That hold is what reads
+as dancing on the beat. Moves flagged `smooth` (the run cycle) interpolate continuously instead.
+`ctx.choreo = [{b, move|pose}, …]` sequences moves on absolute beats with a 0.6-beat S-curve crossfade.
 Up to 12 copies of the hero can be placed per frame with `W.hero(x, z, scale, {shadow, flip, y, opacity})`
 (clones in the mirror hall, the twin, the eye's iris).
 
@@ -326,7 +343,8 @@ pops a word in at a sung time `t0 = U.findWord("word", after)`, with overshoot.
 - Events inside a shot sync to **sung words** (`U.findWord`) or to **kicks/snares**
   (`U.eventPulse(t, MV.SONG.kicks)`). A key word pops in on its own syllable.
 - The drop gets a flash plus shake. From then on there are camera punch-zooms on kicks (`cam(ctx, keys, {punch})`).
-- Transitions are hard cuts (often with a 0.2–0.35 s flash or a fade-in from black). Do not use slow crossfades.
+- Transitions are hard cuts, often with an exposure flash of 0.24 s or less, or a fade-in from black.
+  Do not use slow crossfades.
 
 ## 9. Visual grammar (what makes it read as "official")
 1. **One world from one motif.** Sets, props, characters and type all come from it (cards: walls of
@@ -358,22 +376,29 @@ pops a word in at a sung time `t0 = U.findWord("word", after)`, with overshoot.
 These targets come from the critic pass on our draft 1 (scored 5/10 against Ultracode). Each one
 is a defect we actually shipped in a draft.
 - **Exposure:** the shot's mean luma (0–255) should be **60–90, hooks 80+**. Ultracode's stills
-  average about 77; our draft 1 had a median of 28 and looked muddy. Measure with
-  `python3 tools/luma_report.py <video.mp4>`. A dark mood is a choice for one shot, not the
-  default for the film.
+  average about 77. Our draft 1 had a median of 28 and looked muddy; the final has a median of 91.
+  Measure with `python3 tools/luma_report.py <video.mp4> --hook-from <s>`. A dark mood is a choice
+  for one section, not the default for the film. In the final, only the void intro, verse A
+  ("lights dim") and the "silence" shot sit at 38–58, and they are dark on purpose.
 - **Hero size:** **55–70% of frame height** in dance shots and **≥ 40%** in wide set pieces.
   Clones and reflections are smaller or dimmer (≤ 80% size or about 60% brightness) so the hero
   stays the focal point. "Ten feet tall" must make him *big*.
-- **Motion:** every pose change eases over **3–5 frames** with anticipation and overshoot. Never
-  jump in 1–2 frames. Add a body dip of 3–5% of height on kicks, plus hip sway and weight shift.
-  Legs never cross into an X (clamp the knees).
+- **Motion:** every pose change eases over **at least 4 frames** with gentle anticipation and
+  overshoot. Here a key pose starts 0.3 beat early and settles 0.22 beat late, about 6 frames.
+  Cyclic moves such as `run` interpolate continuously, with no holds (one stride per beat).
+  `motion_check.cjs` flags any joint that moves more than 400 canvas px (35% of the figure) in one
+  frame as a SNAP. Moves of 200–400 px are allowed only for kicks, pops and spins. Draft 1 had
+  1-frame jumps of up to 418 px; the final has 0 snaps and a 326 px maximum. Always run the groove:
+  a knee dip on every beat (3.5% squash), hip sway and weight shift. Legs never cross into an X
+  (the knees are clamped in `solve()`).
 - **Typography:** one display system, gold for truth words and red for lies. Key words are
   **≥ 90 px cap height**, centred in clean space, with a glow or plate, and **never over the hero's
   face or body**. Negated words get negated visibly (strike, crack, "AIN'T").
 - **Background:** the set must not fight the hero. Avoid big fields of tiny high-contrast icons,
   which shimmer when the camera moves. Use bigger elements or lower the contrast behind the hero.
   Rim-light or separate the hero from look-alike props (court cards share his colours).
-- **Flashes:** decay in 2–3 frames (additive), never a milky 6-frame wash. Alternate flashes with punch-zooms.
+- **Flashes:** a colour-dodge exposure hit with a quadratic decay of 0.24 s or less (visible for about
+  3–4 frames), never a milky full-frame mix. Alternate flashes with punch-zooms.
 - **Escalation:** a repeated hook gets new angles and bigger, brighter set pieces, never the same shot again.
 - **Finale:** the payoff is legible as a close-up, held through the last sung word. The title
   card comes **after** the last word (an end-card tail of up to 2 s after the excerpt is allowed;
@@ -398,8 +423,17 @@ is a defect we actually shipped in a draft.
   but prefer classes.
 - **Three.js:** use the r158 UMD `three.min.js` (vendored). Cache text and card textures by key,
   and never create a texture per frame.
-- **Workers:** `--workers 12` still ran 6 here. A draft takes about 3 min. A `--quality high`
-  render takes longer and is about 2× the size.
+- **Workers:** `--workers 12` still ran 6 here. A draft takes about 3 min (60 MB). A `--quality high`
+  render takes about 4 min 50 s (402 MB, about 41 Mbps).
+- **The 2D overlay must be opaque.** Start it by copying the GL frame (`O.begin` → `copy`), then
+  composite bloom, flashes and HUDs on top. Draft 1 drew bloom onto a transparent overlay: the
+  crushed-black pixels of the bloom buffer veiled the whole frame at the bloom alpha, a hidden
+  30–40% darkening. The midtone lift (`post.lift`, screening the frame with itself) also lives here.
+- **Colour flashes use `color-dodge`, not a translucent fill.** A fill washes the frame milky;
+  a dodge blows out the brights and keeps blacks black. Use a quadratic decay of 0.24 s or less.
+- **End-card tail:** a title card over the last sung word kills the payoff. Make the composition
+  the excerpt plus 1.8 s (`#root data-duration`, `U.TOTAL`), keep `<audio data-duration>` at the
+  excerpt, and show the title after the music. Run `check_render.sh` with the total duration.
 - **AAC priming** shifts the audio about 21 ms. That is acceptable (`check_render.sh` allows 30 ms).
 - **Pool limits:** `W.hero()`, `W.text()` and `W.glow()` return `null` when the pool is full.
   Raise the pool size in `stage.js` instead of silently losing objects.

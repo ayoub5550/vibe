@@ -9,4 +9,5 @@ respect (frame = f(t), no randomness, inline timeline registration, lazy canvas 
 - `assets/song.wav` is not committed. Recreate it with root `AGENTS.md` → Step 1.
 - Frame check: `node ../../tools/frames.cjs . 1.0,26.2,48.0 /work/temp/frames`
 - Render: `hyperframes render --quality high --output out/mirror-mirror.mp4`, then
-  `bash ../../tools/check_render.sh out/mirror-mirror.mp4 <duration> assets/song.wav`
+  `bash ../../tools/check_render.sh out/mirror-mirror.mp4 81.02 assets/song.wav` (81.02 = 79.22 s song + 1.8 s tail)
+- Motion gate: `node ../../tools/motion_check.cjs . 0-81` must print PASS.

@@ -43,12 +43,14 @@ window.MV = window.MV || {};
     return S[0];
   }
 
-  MV.renderAt = function (t) {
-    t = U.clamp(t, 0, U.DURATION - 1e-4);
+  // opt.poseOnly: run the shot + choreography and stop before drawing (tools/motion_check.cjs)
+  MV.renderAt = function (t, opt) {
+    t = U.clamp(t, 0, U.TOTAL - 1e-4);
     if (!built && !build()) return;
-    if (Math.abs(t - lastT) < 1e-6) return;
-    lastT = t;
-    W.reset();
+    const poseOnly = !!(opt && opt.poseOnly);
+    if (!poseOnly && Math.abs(t - lastT) < 1e-6) return;
+    lastT = poseOnly ? -1 : t;
+    W.reset(t >= 25.66); // white face walls from the kick drop on (shots can flip back to eyes)
     const shot = shotAt(t);
     const b = U.beatAt(t);
     const ctx = {
@@ -58,7 +60,7 @@ window.MV = window.MV || {};
       dur: shot.t1 - shot.t0,
       k: U.clamp((t - shot.t0) / (shot.t1 - shot.t0)),
       choreo: null, pose: null, shadowPose: null,
-      post: { bloom: 0.42, vignette: 1, grain: 0.05, flash: null, letterbox: 0, glitch: 0, exposure: 1 },
+      post: { bloom: 0.42, vignette: 1, grain: 0.05, flash: null, letterbox: 0, glitch: 0, exposure: 1, lift: 0.6 },
       overlay: [],
     };
     shot.apply(ctx);
@@ -66,10 +68,32 @@ window.MV = window.MV || {};
     // hero pose -> canvases
     let pose = ctx.pose || (ctx.choreo ? MV.choreoPose(ctx.choreo, b) : MV.pose("neutral"));
     pose = Object.assign({}, pose);
+    // groove (critic fix): knee-bend bounce down on every beat + hip sway + weight shift, so the body
+    // never stands frozen between hits. Stronger after the drop. ctx.groove = 0 disables it.
+    let gv = ctx.groove !== undefined ? ctx.groove : ctx.choreo ? (t >= 25.66 ? 1 : 0.6) : 0;
+    if (ctx.groove === undefined && ctx.choreo) {
+      // static story poses (pray, bow, stand still) only breathe; moves get the full groove
+      let cur = ctx.choreo[0];
+      for (const c of ctx.choreo) if (c.b <= b) cur = c;
+      if (!cur.move) gv *= 0.2;
+    }
+    if (gv > 0) {
+      const fb = b - Math.floor(b);
+      const bob = Math.pow(0.5 + 0.5 * Math.cos(U.TAU * fb), 2) * gv;
+      pose.lHip -= 7 * bob; pose.lKnee += 14 * bob; pose.rHip += 7 * bob; pose.rKnee -= 14 * bob;
+      pose.squash += 0.035 * bob;
+      pose.head += 3 * bob;
+      const sway = Math.sin(Math.PI * b) * gv;
+      pose.shift += 12 * sway;
+      pose.torso += 2.5 * sway;
+    }
     if (ctx.mouth !== false) pose.mouth = mouthAt(t) * (ctx.mouthScale || 1);
     pose.eyes = eyesAt(t);
     if (ctx.poseMod) ctx.poseMod(pose);
     ctx.finalPose = pose;
+    MV.lastPose = pose; // read by tools/motion_check.cjs (snap detector)
+    MV.lastShot = shot.name;
+    if (poseOnly) return;
     MV.drawJester(W.heroCtx, pose, MV.P, t);
     W.heroTex.needsUpdate = true;
     let sp = ctx.shadowPose ? Object.assign({}, ctx.shadowPose) : pose;
@@ -82,7 +106,7 @@ window.MV = window.MV || {};
     W.render();
 
     // overlay
-    O.begin();
+    O.begin(ctx.post.lift);
     O.bloom(ctx.post.bloom);
     if (ctx.post.glitch) O.glitch(t, ctx.post.glitch);
     for (const fn of ctx.overlay) fn(O, t);
@@ -100,7 +124,7 @@ window.MV = window.MV || {};
   // index.html creates + registers the paused timeline; we add one proxy tween spanning the song
   MV.attachTimeline = function (tl) {
     const proxy = { t: 0 };
-    tl.to(proxy, { t: U.DURATION, duration: U.DURATION, ease: "none", onUpdate: () => MV.renderAt(proxy.t) }, 0);
+    tl.to(proxy, { t: U.TOTAL, duration: U.TOTAL, ease: "none", onUpdate: () => MV.renderAt(proxy.t) }, 0);
     return tl;
   };
   // debug hook: MV.renderAt(seconds) can be called from a console / Playwright

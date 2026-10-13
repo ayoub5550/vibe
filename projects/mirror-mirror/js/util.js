@@ -7,7 +7,9 @@ window.MV = window.MV || {};
   U.W = 1920;
   U.H = 1080;
   U.FPS = 30;
-  U.DURATION = S.excerpt_seconds; // 79.22 s — the composition length
+  U.DURATION = S.excerpt_seconds; // 79.22 s: the song excerpt (audio length)
+  U.TAIL = 1.8; // end-card tail after the music (AGENTS.md section 11: title AFTER the last word)
+  U.TOTAL = Math.round((U.DURATION + U.TAIL) * 100) / 100; // 81.02 s: the composition length
 
   // ---- math ----
   U.clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -39,6 +41,13 @@ window.MV = window.MV || {};
     outElastic: (k) =>
       k <= 0 ? 0 : k >= 1 ? 1 : Math.pow(2, -10 * k) * Math.sin((k * 10 - 0.75) * ((2 * Math.PI) / 3)) + 1,
     inOutSine: (k) => -(Math.cos(Math.PI * k) - 1) / 2,
+    // anticipation (dips back ~5%) + overshoot (~5%), used for dance hits
+    inOutBack: (k) => {
+      const c2 = 1.70158 * 0.55; // gentle: ~3% anticipation, ~3% overshoot
+      return k < 0.5
+        ? (Math.pow(2 * k, 2) * ((c2 + 1) * 2 * k - c2)) / 2
+        : (Math.pow(2 * k - 2, 2) * ((c2 + 1) * (k * 2 - 2) + c2) + 2) / 2;
+    },
   };
 
   // ---- seeded PRNG (mulberry32) + hash noise ----

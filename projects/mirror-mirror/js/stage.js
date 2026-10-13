@@ -101,7 +101,8 @@ window.MV = window.MV || {};
     W.wallCards = [];
     const rr = U.rng(11);
     // a wall = rows of cards laid along the segment P0->P1 (x,z); homeRot = front face looks at the stage
-    const PITCH_X = CARD_W + 0.12, PITCH_Y = CARD_H + 0.14;
+    const WS = 1.9; // wall card scale: 8-10 big readable cards per row instead of 20 tiny ones
+    const PITCH_X = CARD_W * WS + 0.16, PITCH_Y = CARD_H * WS + 0.2;
     const addWallLine = (p0, p1, rows, name) => {
       const dx = p1[0] - p0[0], dz = p1[1] - p0[1];
       const len = Math.hypot(dx, dz);
@@ -115,9 +116,9 @@ window.MV = window.MV || {};
       for (let r = 0; r < rows; r++)
         for (let c = 0; c < cols; c++) {
           const face = MV.ALL_FACES[Math.floor(rr() * MV.ALL_FACES.length)];
-          const card = makeCard(face, "BACK3", 0.8);
+          const card = makeCard(face, "BACK3", 1.2, CARD_W * WS, CARD_H * WS);
           const d = (c + 0.5) * PITCH_X;
-          card.position.set(p0[0] + ux * d, 0.3 + r * PITCH_Y + CARD_H / 2, p0[1] + uz * d);
+          card.position.set(p0[0] + ux * d, 0.3 + r * PITCH_Y + (CARD_H * WS) / 2, p0[1] + uz * d);
           card.userData.home = card.position.clone();
           card.userData.homeRot = homeRot;
           card.userData.seed = rr();
@@ -130,14 +131,14 @@ window.MV = window.MV || {};
         }
     };
     // back wall blocks either side of the sunburst arch, plus angled side walls
-    addWallLine([-17.4, -12.2], [-8.2, -12.2], 9, "backL");
-    addWallLine([8.2, -12.2], [17.4, -12.2], 9, "backR");
-    addWallLine([-17.6, -11.6], [-23.5, 3.0], 9, "sideL");
-    addWallLine([17.6, -11.6], [23.5, 3.0], 9, "sideR");
+    addWallLine([-17.4, -12.2], [-8.2, -12.2], 5, "backL");
+    addWallLine([8.2, -12.2], [17.4, -12.2], 5, "backR");
+    addWallLine([-17.6, -11.6], [-23.5, 3.0], 5, "sideL");
+    addWallLine([17.6, -11.6], [23.5, 3.0], 5, "sideR");
     scene.add(walls);
     W.walls = walls;
     // back-texture variants for blinking eyes
-    W.backTex = [0, 1, 2, 3].map((i) => MV.cardTex("BACK" + i, 0.8));
+    W.backTex = [0, 1, 2, 3].map((i) => MV.cardTex("BACK" + i, 1.2));
 
     // ---------------- hero (2D canvas on a billboard plane) + shadow canvas
     W.heroCanvas = MV.canvas(JC.w, JC.h);
@@ -401,7 +402,7 @@ window.MV = window.MV || {};
   }
 
   // ------------------------------------------------------------- per-frame reset
-  W.reset = function () {
+  W.reset = function (faces = false) {
     const hideAll = (arr) => arr.forEach((o) => (o.visible = false));
     W.stars.visible = true;
     W.lattice.visible = false;
@@ -418,7 +419,8 @@ window.MV = window.MV || {};
     for (const c of W.wallCards) {
       c.visible = true;
       c.position.copy(c.userData.home);
-      c.rotation.set(0, c.userData.homeRot + Math.PI, 0); // default: backs (eyes) facing the stage
+      // default: backs (eyes) face the stage before the drop, white faces after it (W.wallsFaces)
+      c.rotation.set(0, c.userData.homeRot + (faces ? 0 : Math.PI), 0);
       c.scale.setScalar(1);
       c.userData.back.material.map = W.backTex[3];
     }
@@ -453,6 +455,7 @@ window.MV = window.MV || {};
     W.scene.background.setHex(0x03050b);
     W.cam.fov = 38;
     W.cam.up.set(0, 1, 0);
+    W.wallsFaces = faces;
     W.heroCount = 0;
     W.textCount = 0;
     W.glowCount = 0;

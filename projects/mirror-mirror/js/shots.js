@@ -58,9 +58,14 @@ window.MV = window.MV || {};
     if (o.drift) p[1] += (t - t0) * o.drift;
     return W.text(str, style, p, h * pop, Object.assign({ opacity: op }, o));
   }
-  function flashAt(ctx, t0, color = "#fff6dc", peak = 0.85, len = 0.35) {
+  // short, snappy hit: quadratic decay over <= 0.24 s (critic: no milky 6-frame washes)
+  function flashAt(ctx, t0, color = "#fff6dc", peak = 0.85, len = 0.24) {
+    len = Math.min(len, 0.24);
     const dt = ctx.t - t0;
-    if (dt >= 0 && dt < len) ctx.post.flash = [color, peak * (1 - dt / len)];
+    if (dt >= 0 && dt < len) {
+      const k = 1 - dt / len;
+      ctx.post.flash = [color, peak * k * k];
+    }
   }
   function fadeIn(ctx, len = 0.25) {
     if (ctx.lt < len) ctx.post.flash = ["#000", 1 - ctx.lt / len];
@@ -72,6 +77,9 @@ window.MV = window.MV || {};
       const k = U.clamp((ctx.t - t0 - d * speed) / 0.25);
       c.userData.back.material.map = W.backTex[Math.min(3, Math.floor(k * 3.999))];
     }
+  }
+  function wallsEyes() {
+    for (const c of W.wallCards) c.rotation.y = c.userData.homeRot + Math.PI;
   }
   function eyesClosed() {
     for (const c of W.wallCards) c.userData.back.material.map = W.backTex[0];
@@ -242,7 +250,7 @@ window.MV = window.MV || {};
   // ---------------------------------------------------------------- the shots
   const B = (b) => Math.max(0, tb(b));
   const S = [];
-  const shot = (b0, b1, name, apply) => S.push({ t0: B(b0), t1: b1 === "end" ? U.DURATION : B(b1), name, apply });
+  const shot = (b0, b1, name, apply) => S.push({ t0: B(b0), t1: b1 === "end" ? U.TOTAL : B(b1), name, apply });
 
   // ===== HOOK 1 ======================================================
   shot(-1, 4.5, "01 card intro — Mirror, mirror on the wall", (ctx) => {
@@ -269,7 +277,7 @@ window.MV = window.MV || {};
     W.glow([0, 2.4, -1], 8, 0.45 * (1 - drop));
     cam(ctx, [[0, [-2.6, 1.0, 9.4], [0, 2.6, 0], 40], [1, [2.4, 1.5, 8.6], [0, 2.4, 0], 40, "linear"]], { shake: 0.05 });
     word(ctx, "RISE", GOLD, tRise, [-3.2, 3.2, 0.6], 1.3, { drift: 1.2 });
-    word(ctx, "FALL", ICE, tFall, [3.2, 2.6, 0.6], 1.3, { drift: -2.6, noPop: true });
+    word(ctx, "FALL", ICE, tFall, [3.2, 2.9, 0.6], 1.4, { drift: -1.5, noPop: true });
     flashAt(ctx, tFall, "#cfe6ff", 0.35, 0.25);
   });
 
@@ -297,13 +305,13 @@ window.MV = window.MV || {};
     stageLights(ctx, 0.9);
     eyeBlink(ctx);
     const tTen = fw("ten"), tTall = fw("tall");
-    const s = heroGrow(ctx, tTen - 0.1, tTall + 0.25, 1.0, 1.6);
+    const s = heroGrow(ctx, tTen - 0.1, tTall + 0.25, 1.0, 1.9);
     W.hero(0, 0, s);
     ctx.choreo = [{ b: 0, pose: "hips" }, { b: U.beatAt(tTen) - 0.3, pose: "lookUp" }, { b: U.beatAt(tTall) - 0.2, pose: "tall" }];
     const rk = E.outExpo(U.clamp((ctx.t - (tTen - 0.6)) / 0.5));
-    ruler(1.75 * s, 0.4, 4.6 * s, rk);
-    cam(ctx, [[0, [0.4, 0.8, 5.6], [0, 2.2, 0], 46], [1, [0, 0.45, 7.4], [0, 3.6, 0], 52, "inOutQuad"]]);
-    word(ctx, "10", GOLD, tTen, [-1.9 * s, 3.6 * s, -0.5], 1.2);
+    ruler(2.5, 0.4, 3.45 * 1.9, rk); // fixed ruler: top mark (10) = his final height
+    cam(ctx, [[0, [0.4, 0.9, 6.4], [0, 2.4, 0], 46], [1, [0, 0.6, 10.2], [0, 3.9, 0], 52, "inOutQuad"]]);
+    word(ctx, "10", GOLD, tTen, [-2.4, 6.2, -0.5], 1.2);
     flashAt(ctx, tTall, "#fff3cf", 0.4, 0.3);
     sparksRise(ctx, 40, [0, 0.2, 0], 5, 0.5, 0.07);
   });
@@ -425,9 +433,10 @@ window.MV = window.MV || {};
 
   shot(54.6, 63, "12 silence — But the silence louder now than a million gods", (ctx) => {
     const tMil = fw("million");
-    ctx.post.exposure = 0.78;
-    ctx.post.bloom = 0.3;
-    stageLights(ctx, 0.35);
+    ctx.post.bloom = 0.35;
+    ctx.post.lift = 0.85;
+    stageLights(ctx, 0.5);
+    spot(0, 0, 0, 0.9, 10, 3.4);
     W.walls.visible = true;
     if (ctx.t < tMil) eyesClosed(); else eyeWave(ctx, tMil, 0.012);
     cardsOnSphere(ctx, 19, [0, 0, 0], ctx.t < tMil ? 0 : 3, 0.02);
@@ -619,12 +628,19 @@ window.MV = window.MV || {};
       W.glow([1.9, 2.55, -1.7], 6 * sk, 0.4);
     }
     sparksBurst(ctx, tSermon, [1.9, 2.5, -1.4], 60, 4);
-    W.hero(-1.4, 0.8, 1);
+    const second = ctx.t >= tL - 0.12; // new angle on "Every L"
+    W.hero(second ? 1.2 : -1.4, 0.8, 1);
     ctx.choreo = [{ b: 0, move: "strike" }];
-    cam(ctx, [[0, [-1.3, 2.2, 8.0], [0, 2.4, -1], 40], [1, [1.3, 2.2, 7.4], [0, 2.4, -1], 40, "linear"]], { punch: 2 });
-    if (ctx.t > tL - 0.05 && ctx.t < tLearn) word(ctx, "L", GOLD, tL, [-3.6, 3.0, 0], 2.2);
-    word(ctx, "LEARN", GOLD, tLearn, [-3.4, 3.4, 0], 1.3);
-    word(ctx, "SERMON", DECO, tSermon, [-3.2, 4.3, -1], 0.6, { t1: tL - 0.2 });
+    if (!second) {
+      cam(ctx, [[0, [-1.3, 2.2, 8.0], [0, 2.4, -1], 40], [1, [1.3, 2.2, 7.4], [0, 2.4, -1], 40, "linear"]], { punch: 2 });
+      word(ctx, "SERMON", GOLD, tSermon, [-0.6, 5.0, -0.6], 1.0);
+    } else {
+      W.bigCard.visible = false;
+      const lk = U.clamp((ctx.t - tL + 0.12) / (B(126.2) - tL + 0.12));
+      W.camLook([U.lerp(-0.6, 0.4, lk), 2.3, U.lerp(9.0, 8.2, lk)], [-0.6, 2.7, -1], 40);
+      if (ctx.t < tLearn) word(ctx, "L", GOLD, tL, [-2.6, 3.0, -1.2], 4.0);
+      else word(ctx, "LEARN", GOLD, tLearn, [-1.6, 4.9, -1.2], 1.6);
+    }
   });
 
   shot(126.2, 131, "22 imperfect reflections — I ain't perfect, I just pity how I lived it", (ctx) => {
@@ -632,14 +648,14 @@ window.MV = window.MV || {};
     eyeBlink(ctx);
     for (let i = 0; i < 3; i++) {
       mirrorAt(i, (i - 1) * 3.3, -2.6, (1 - i) * 0.18, 1.05);
-      W.hero((i - 1) * 3.3, -2.5, 0.9, { shadow: true, flip: i % 2 === 0, billboard: false }).rotation.y = (1 - i) * 0.18;
+      W.hero((i - 1) * 3.3, -2.5, 0.8, { shadow: true, flip: i % 2 === 0, billboard: false, opacity: 0.75 }).rotation.y = (1 - i) * 0.18;
     }
     W.hero(0, 1.3, 1);
     ctx.choreo = [{ b: 0, move: "frameMirror" }];
     // reflections lag behind him: imperfect copies
     ctx.shadowPose = MV.choreoPose([{ b: 0, move: "frameMirror" }], ctx.b - 0.75);
     cam(ctx, [[0, [0, 2.3, 10.4], [0, 2.3, -1], 40], [1, [0, 2.1, 8.8], [0, 2.2, -1], 40, "linear"]]);
-    word(ctx, "PERFECT", Object.assign({}, ICE, { color: "#d6e9ff" }), fw("perfect"), [0, 6.0, -2.6], 0.9, { t1: fw("lived") });
+    word(ctx, "PERFECT", Object.assign({}, ICE, { color: "#d6e9ff", strike: "#ff3b30" }), fw("perfect") - 0.05, [0, 5.25, -2.0], 1.1, { t1: fw("lived") });
   });
 
   shot(131, 136, "23 marionette — If the game rigged, then I still pivot, uh", (ctx) => {
@@ -670,16 +686,16 @@ window.MV = window.MV || {};
       const a = (i - 3) * 0.33;
       const x = Math.sin(a) * 7.2, z = -2.4 - Math.cos(a) * 7.2 + 7.2 - 2.2;
       mirrorAt(i, x, z, -a, 1.0);
-      W.hero(x, z + 0.06, 0.86, { shadow: true, flip: i % 2 === 1, billboard: false }).rotation.y = -a;
+      W.hero(x, z + 0.06, 0.74, { shadow: true, flip: i % 2 === 1, billboard: false, opacity: 0.72 }).rotation.y = -a;
     }
-    W.hero(0, 1.6, 1);
+    W.hero(0, 1.6, 1.08);
     ctx.choreo = [{ b: 0, move: "wave" }, { b: U.beatAt(tRise) - 0.3, pose: "star" }, { b: U.beatAt(tFall) - 0.1, pose: "fall" }];
-    if (ctx.t < tb(140.6)) cam(ctx, [[0, [0, 2.8, 13.5], [0, 2.4, -2], 40], [1, [0, 2.6, 12.5], [0, 2.4, -2], 40, "linear"]], { punch: 1.6 });
+    if (ctx.t < tb(140.6)) cam(ctx, [[0, [0, 2.6, 11.0], [0, 2.4, -1], 40], [1, [0, 2.4, 9.6], [0, 2.3, -0.5], 40, "linear"]], { punch: 1.6 });
     else {
       const k2 = U.clamp((ctx.t - tb(140.6)) / (ctx.dur - (tb(140.6) - B(136))));
       W.camLook([U.lerp(-6.5, -4.5, k2), 1.15, U.lerp(7.5, 6.8, k2)], [0, 2.3, -1.5], 40);
     }
-    word(ctx, "THE WALL", ICE, tWall, [0, 6.5, -4], 1.3, { t1: tRise - 0.3 });
+    word(ctx, "THE WALL", GOLD, tWall, [0, 5.6, -3], 1.3, { t1: tRise - 0.3 });
     flashAt(ctx, B(136), "#e9f6ff", 0.7, 0.35);
     flashAt(ctx, tb(140.6), "#fff6dc", 0.3, 0.2);
   });
@@ -705,12 +721,13 @@ window.MV = window.MV || {};
       }
       word(ctx, "FLAWS", RED, fw("flaws", 58), [0, 4.3, z - 3.5], 1.2);
     } else {
-      const s = heroGrow(ctx, tTen - 0.1, tTall + 0.25, 1, 1.6);
+      const s = heroGrow(ctx, tTen - 0.1, tTall + 0.25, 1, 2.0);
       W.hero(0, 0, s);
       ctx.choreo = [{ b: 0, pose: "hips" }, { b: U.beatAt(tTall) - 0.25, pose: "tall" }];
-      ruler(1.75 * s, 0.4, 4.6 * s, E.outExpo(U.clamp((ctx.t - tStill) / 0.4)));
-      W.camLook([0.2, 0.45, 7.2], [0, 3.5, 0], 52);
-      word(ctx, "10", GOLD, tTen, [-1.9 * s, 3.6 * s, -0.5], 1.2);
+      ruler(2.6, 0.4, 3.45 * 2.0, E.outExpo(U.clamp((ctx.t - tStill) / 0.4)));
+      const ck = E.inOutCubic(U.clamp((ctx.t - tStill) / (B(152.8) - tStill)));
+      W.camLook([U.lerp(-1.2, 0.3, ck), U.lerp(1.0, 0.7, ck), U.lerp(6.2, 10.6, ck)], [0, U.lerp(2.6, 4.1, ck), 0], 52);
+      word(ctx, "10", GOLD, tTen, [-2.5, 6.4, -0.5], 1.3);
       flashAt(ctx, tStill - 0.1, "#fff6dc", 0.4, 0.2);
       flashAt(ctx, tTall, "#fff3cf", 0.4, 0.3);
     }
@@ -723,6 +740,7 @@ window.MV = window.MV || {};
     const open = ctx.t < tLie ? 0.55 : E.outCubic(U.clamp((ctx.t - tLie) / 0.5)) * 0.45 + 0.55;
     drawGiantEye(ctx, open, Math.sin(ctx.t * 1.9) * 0.6, Math.cos(ctx.t * 1.3) * 0.25);
     eyePlane([0, 5.0, -11], 26, 13);
+    wallsEyes();
     for (const c of W.wallCards) {
       const wave = Math.sin(ctx.b * Math.PI * 0.5 - c.userData.col * 0.5 + c.userData.row * 0.3);
       c.userData.back.material.map = W.backTex[wave > 0.4 ? 3 : wave > -0.2 ? 2 : 0];
@@ -746,7 +764,7 @@ window.MV = window.MV || {};
     W.hero(1.0, 0, 1, { shadow: true, flip: true, y: U.lerp(-3.8, 0, rise) });
     ctx.choreo = [{ b: 0, move: "groove" }, { b: U.beatAt(tLights) - 0.2, pose: "mirrorTouchR" }];
     const k = E.outExpo(U.clamp((ctx.t - (tSurf - 0.15)) / 0.6));
-    W.text("SURFACE", ICE, [0, -1.0 + k * 1.75, -1.6], 1.5, { opacity: k > 0 ? 1 : 0 });
+    W.text("SURFACE", ICE, [0, -1.0 + k * 5.2, -2.6], 1.5, { opacity: k > 0 ? 1 : 0 });
     if (ctx.t > tLights) {
       spot(0, -1.0, 0.0, 0.9 * Math.max(0.3, dim), 9, 3);
       spot(1, 1.0, 0.0, 0.9 * Math.max(0.3, dim), 9, 3);
@@ -759,33 +777,42 @@ window.MV = window.MV || {};
   shot(168.6, 176.8, "28 card tornado — Mirror, mirror on the wall / rise and fall", (ctx) => {
     const tRise = fw("rise", 68), tFall = fw("fall", 68);
     stageLights(ctx, 1);
-    ctx.post.bloom = 0.7;
-    eyeBlink(ctx);
+    ctx.post.bloom = 0.5;
+    // vortex on a wide ring AROUND and ABOVE the pair; any card that would cross the dancers in
+    // screen space (in front, low, central) shrinks to nothing (smooth mask, deterministic)
     for (let i = 0; i < W.fly.length; i++) {
       const c = W.fly[i];
-      const s = c.userData.seed;
-      // vortex above the dancers' heads (y 3.9..12) widening with height; never between lens and hero
-      const h = (s * 8.5 + ctx.t * 0.9) % 8.5;
-      const r = 1.8 + h * 0.62 + U.hash(i, 2) * 0.8;
-      const a = s * U.TAU * 3 + ctx.t * (1.7 - h * 0.08);
-      c.visible = true;
-      c.position.set(Math.cos(a) * r, 3.9 + h, Math.sin(a) * r);
+      const sd = c.userData.seed;
+      const h = (sd * 9 + ctx.t * 1.1) % 9;
+      const r = 4.4 + h * 0.5 + U.hash(i, 2) * 1.2;
+      const a = sd * U.TAU * 3 + ctx.t * (1.6 - h * 0.07);
+      const x = Math.cos(a) * r, y = 0.5 + h, z = Math.sin(a) * r;
+      const front = U.clamp((z + 1.0) / 1.5), low = U.clamp((4.8 - y) / 1.0), central = U.clamp((3.6 - Math.abs(x)) / 1.0);
+      const m = 1 - front * low * central;
+      c.visible = m > 0.02;
+      c.position.set(x, y, z);
       c.rotation.set(ctx.t * 2 + i, -a, ctx.t * 1.3);
-      c.scale.setScalar(1.1);
+      c.scale.setScalar(1.15 * m);
     }
-    W.hero(-0.9, 0.2, 1);
-    W.hero(0.9, 0.2, 1, { shadow: true, flip: true });
+    // key + rim light on both dancers, one body width apart
+    spot(0, -1.6, 0.3, 0.85, 10, 3.2);
+    spot(1, 1.6, 0.3, 0.85, 10, 3.2);
+    W.glow([-1.6, 2.2, -0.7], 4.2, 0.45);
+    W.glow([1.6, 2.2, -0.7], 4.2, 0.45, true);
+    W.hero(-1.6, 0.3, 1.05);
+    W.hero(1.6, 0.3, 1.05, { shadow: true, flip: true });
     ctx.choreo = [{ b: 0, move: "strike" }, { b: U.beatAt(tRise) - 0.3, pose: "star" }, { b: U.beatAt(tFall) - 0.1, move: "hype" }];
-    orbit(ctx, 8.0, 1.5, -0.2, U.TAU * 0.55, [0, 2.8, 0], 46, "linear");
-    word(ctx, "RISE", GOLD, tRise, [0, 6.2, 0], 1.3, { billboard: true, drift: 1.5, t1: tFall });
-    word(ctx, "FALL", ICE, tFall, [0, 6.0, 0], 1.3, { billboard: true, drift: -2.5 });
-    flashAt(ctx, B(168.6), "#fff6dc", 0.8, 0.35);
+    const a = U.lerp(-0.32, 0.32, E.inOutSine(ctx.k));
+    const d = U.lerp(9.6, 7.8, E.inOutSine(ctx.k));
+    W.camLook([Math.sin(a) * d, U.lerp(1.5, 2.3, ctx.k), Math.cos(a) * d], [0, 2.3, 0], 44);
+    word(ctx, "RISE", GOLD, tRise, [0, 5.6, -0.5], 1.2, { billboard: true, drift: 1.2, t1: tFall });
+    word(ctx, "FALL", ICE, tFall, [0, 5.4, -0.5], 1.2, { billboard: true, drift: -1.8 });
+    flashAt(ctx, B(168.6), "#fff6dc", 0.8);
   });
 
   shot(176.8, 184.8, "29 house of cards — runnin' from my flaws / ten feet tall", (ctx) => {
-    const tTall = fw("tall", 72);
+    const tTen = fw("ten", 72), tTall = fw("tall", 72);
     stageLights(ctx, 1);
-    eyeBlink(ctx);
     // pyramid of A-frames: level L has (5-L) frames
     let n = 0;
     const levels = 5, fwid = 1.25;
@@ -797,7 +824,7 @@ window.MV = window.MV || {};
           if (!c) continue;
           const order = n;
           n++;
-          const arrive = B(176.8) + order * 0.05;
+          const arrive = B(176.8) + order * 0.045;
           const k = E.outCubic(U.clamp((ctx.t - arrive) / 0.35));
           if (k <= 0) continue;
           c.visible = true;
@@ -808,18 +835,33 @@ window.MV = window.MV || {};
         }
       }
     }
-    const climb = E.inOutCubic(U.clamp((ctx.t - B(178)) / (tTall - 0.3 - B(178))));
-    const s = heroGrow(ctx, tTall - 0.3, tTall + 0.3, 1, 1.25);
-    W.hero(0, -1.5, s, { y: climb * topY });
-    ctx.choreo = [{ b: 0, move: "run" }, { b: U.beatAt(tTall) - 0.4, pose: "tall" }];
-    cam(ctx, [[0, [0, 1.2, 15.5], [0, 3.5, -1.5], 44], [0.7, [0, 3.0, 12.5], [0, 5.6, -1.5], 44, "inOutCubic"], [1, [0, 6.4, 7.2], [0, 7.6, -1.5], 46, "outCubic"]], { punch: 1.4 });
-    flashAt(ctx, tTall, "#fff3cf", 0.5, 0.3);
+    const climb = E.inOutCubic(U.clamp((ctx.t - B(178)) / (tTen - 0.35 - B(178))));
+    const s = heroGrow(ctx, tTall - 0.3, tTall + 0.3, 1, 1.6);
+    const hy = climb * topY;
+    W.hero(0, -1.5, s, { y: hy });
+    ctx.choreo = [{ b: 0, move: "run" }, { b: U.beatAt(tTen) - 0.4, pose: "hips" }, { b: U.beatAt(tTall) - 0.4, pose: "tall" }];
+    // ruler on the summit: its 10 mark = his final height (he GROWS to ten feet)
+    const rk = E.outExpo(U.clamp((ctx.t - (tTen - 0.3)) / 0.4));
+    if (rk > 0.01) {
+      W.ruler.visible = true;
+      W.ruler.material.opacity = rk;
+      const rh = 3.45 * 1.6;
+      W.ruler.scale.set((rh * 220) / 1400, rh, 1);
+      W.ruler.position.set(1.9, topY + rh / 2 - 0.05, -1.5);
+      W.ruler.rotation.set(0, 0, 0);
+    }
+    // the camera climbs with him: by "ten" he fills more than half the frame
+    const follow = E.inOutCubic(U.clamp((ctx.t - B(177.6)) / (tTen - B(177.6))));
+    const ty = U.lerp(3.2, hy + 1.9 * s, follow);
+    const dist = U.lerp(15.5, 7.2 + (s - 1) * 5.5, follow);
+    W.camLook([0, ty - U.lerp(1.2, 0.6, follow), -1.5 + dist], [0, ty, -1.5], 44);
+    if (ctx.t > tTall - 0.3) sparksRise(ctx, 50, [0, topY + 1.5, -1.5], 6, 0.7, 0.08, 0.8);
+    flashAt(ctx, tTall, "#fff3cf", 0.5);
   });
 
   shot(184.8, 193.6, "30 quick cuts — Mirror, mirror, don't you lie / I can see it in my eyes", (ctx) => {
     const sub = Math.floor(ctx.lb / 2);
     stageLights(ctx, 1);
-    eyeBlink(ctx);
     W.hero(0, 0.6, 1);
     ctx.choreo = [{ b: 0, move: "kicks" }];
     const angle = sub % 4;
@@ -827,62 +869,141 @@ window.MV = window.MV || {};
       for (let i = 0; i < 5; i++) {
         const a = (i - 2) * 0.4;
         mirrorAt(i, Math.sin(a) * 6, -2.5 - Math.cos(a) * 6 + 6 - 2, -a, 1);
-        W.hero(Math.sin(a) * 6, -2.5 - Math.cos(a) * 6 + 6 - 2 + 0.06, 0.86, { shadow: true, flip: i % 2 === 0, billboard: false }).rotation.y = -a;
+        W.hero(Math.sin(a) * 6, -2.5 - Math.cos(a) * 6 + 6 - 2 + 0.06, 0.74, { shadow: true, flip: i % 2 === 0, billboard: false, opacity: 0.72 }).rotation.y = -a;
       }
-      W.camLook([0, 2.6, 12], [0, 2.4, -2], 40);
+      W.camLook([0, 2.5, 10.0], [0, 2.3, -1.5], 40);
     } else if (angle === 1) {
-      W.camLook([0.4, 2.9, 3.2], [0, 2.75, 0], 30);
+      // medium close-up: eyes on the upper third
+      W.camLook([0.35, 2.75, 5.4], [0, 2.55, 0.6], 36);
     } else if (angle === 2) {
+      wallsEyes();
+      eyeBlink(ctx);
       drawGiantEye(ctx, 1, Math.sin(ctx.t * 3) * 0.7, 0);
-      eyePlane([0, 5.0, -11], 26, 13);
+      eyePlane([0, 5.0, -10.0], 26, 13);
       W.sun.visible = false;
-      W.camLook([-3, 1.3, 9], [0, 3.6, -5], 42);
+      W.camLook([-2.6, 1.5, 9], [0, 3.4, -4], 42);
     } else {
-      W.hero(0, -2.5, 1, { shadow: true, flip: true });
-      W.camLook([5.5, 1.6, 6.5], [0, 2.0, -1], 40);
+      W.hero(0, -2.5, 0.9, { shadow: true, flip: true, opacity: 0.85 });
+      W.camLook([4.6, 1.7, 6.2], [0, 2.1, -0.6], 40);
     }
-    ctx.post.bloom = 0.6;
-    flashAt(ctx, B(184.8 + sub * 2), "#fff6dc", 0.4, 0.18);
+    ctx.post.bloom = 0.5;
+    flashAt(ctx, B(184.8 + sub * 2), "#fff6dc", 0.35, 0.12);
     const tEyes = fw("eyes", 76);
-    word(ctx, "EYES", ICE, tEyes, [0, 5.4, -1], 1.2, { billboard: true });
+    word(ctx, "EYES", GOLD, tEyes, [0, 5.4, -1], 1.2, { billboard: true });
   });
 
+  // ===== FINALE: the touch, then the title AFTER the last word (composition = excerpt + 1.8 s tail)
   shot(193.6, "end", "31 the touch + title — Truth gon' surface every time", (ctx) => {
-    const tTruth = fw("truth", 77), tSurf = fw("surface", 77), tEvery = fw("every", 78);
-    stageLights(ctx, 0.8);
-    eyeBlink(ctx);
-    W.floor.material.uniforms.strength.value = 1.1;
-    // he faces his blue self; their hands meet on the invisible mirror line at x = 0
-    const meet = E.outCubic(U.clamp((ctx.t - tTruth) / 0.35));
-    W.hero(U.lerp(-1.6, -1.04, meet), 0, 1);
-    W.hero(U.lerp(1.6, 1.04, meet), 0, 1, { shadow: true, flip: true });
-    ctx.choreo = [{ b: 0, pose: "crossArms" }, { b: U.beatAt(tTruth) - 0.15, pose: "touch" }];
-    const touch = E.outCubic(U.clamp((ctx.t - tSurf + 0.05) / 0.45));
-    const line = W.glow([0, 2.0, 0.02], 0.1, 0.8 * meet);
-    line.userData.billboard = false;
-    line.scale.set(0.22, 4.4 * meet, 1);
-    W.glow([0, 2.12, 0.08], 0.4 + touch * 5.5, 0.95 * touch);
-    W.glow([0, 2.12, 0.1], 0.3 + touch * 2.6, 0.9 * touch, true);
-    sparksBurst(ctx, tSurf, [0, 2.12, 0.2], 70, 3.2, 0.09);
-    cam(ctx, [[0, [0, 2.2, 6.4], [0, 2.0, 0], 40], [1, [0, 2.15, 5.0], [0, 2.05, 0], 40, "linear"]]);
-    const dtE = ctx.t - tEvery;
-    if (dtE > -0.12) {
-      // white-out peaks exactly on "every", then reveals the title card
-      ctx.post.flash = ["#fff6e0", dtE < 0 ? (dtE + 0.12) / 0.12 : Math.max(0, 1 - dtE / 0.18)];
+    const tTruth = fw("truth", 77), tSurf = fw("surface", 77), tTime = fw("time", 78.6);
+    const tTimeEnd = 79.1, tInsert = tSurf - 0.12;
+    if (ctx.t < tInsert) {
+      // 3D: he faces his blue self and reaches; the camera rushes toward the meeting point
+      stageLights(ctx, 0.9);
+      W.floor.material.uniforms.strength.value = 1.0;
+      const meet = E.outCubic(U.clamp((ctx.t - tTruth + 0.1) / 0.35));
+      W.hero(U.lerp(-1.7, -1.1, meet), 0, 1);
+      W.hero(U.lerp(1.7, 1.1, meet), 0, 1, { shadow: true, flip: true });
+      ctx.choreo = [{ b: 0, pose: "crossArms" }, { b: U.beatAt(tTruth) - 0.3, pose: "touch" }];
+      ctx.groove = 0.2;
+      const pk = E.inCubic(U.clamp((ctx.t - B(193.6)) / (tInsert - B(193.6))));
+      W.camLook([0, 2.3, U.lerp(6.6, 3.4, pk)], [0, 2.15, 0], 40);
+      W.glow([0, 2.15, 0.1], 1.4 + pk * 1.5, 0.5 * meet);
+      return;
     }
-    if (dtE > 0) {
-      ctx.post.bloom = 0.18;
-      W.floorLines.visible = false;
-      W.heroes.forEach((h) => (h.visible = false));
-      W.glows.forEach((g) => (g.visible = false));
-      W.sparks.forEach((g) => (g.visible = false));
-      bigCardAt([0, 2.45, 4.2], 0, Math.sin(ctx.t * 1.2) * 0.12, 0, 0.6);
-      W.camLook([0, 2.45, 9.8], [0, 2.45, 4.2], 38);
+    if (ctx.t < tTimeEnd) {
+      // 2D close-up insert: his gloved finger touches his reflection's finger on the mirror line
+      ctx.post.bloom = 0.25;
+      ctx.post.lift = 0.3;
+      W.camLook([0, 1.2, 4.0], [0, 0.4, -3], 50); // dark stage behind, blurred by the overlay
+      const tTouch = tSurf + 0.08;
+      const gap = 150 * (1 - E.outCubic(U.clamp((ctx.t - tInsert) / (tTouch - tInsert))));
+      const glow = E.outCubic(U.clamp((ctx.t - tTouch) / 0.5));
+      const t = ctx.t;
       ctx.overlay.push((O) => {
-        O.text("MIRROR MIRROR", 1920 / 2, 150, { font: "400 120px Limelight", color: "#f8de94", glow: "rgba(255,190,80,0.9)", blur: 30 });
-        O.text("ANNO DOMINI BEATS", 1920 / 2, 960, { font: "700 40px 'Josefin Sans'", color: "#f4ecd8", tracking: "14px" });
+        const g = O.g, Wd = 1920, Hd = 1080, cx = 960, cy = 560;
+        g.save();
+        // background: warm world above, cool mirror world below, darkened copy of the stage
+        g.globalAlpha = 0.86;
+        let grd = g.createLinearGradient(0, 0, 0, cy);
+        grd.addColorStop(0, "#120c05"); grd.addColorStop(1, "#5a3c12");
+        g.fillStyle = grd; g.fillRect(0, 0, Wd, cy);
+        grd = g.createLinearGradient(0, cy, 0, Hd);
+        grd.addColorStop(0, "#10306e"); grd.addColorStop(1, "#040a1c");
+        g.fillStyle = grd; g.fillRect(0, cy, Wd, Hd - cy);
+        g.globalAlpha = 1;
+        // sunburst rays from the contact point (gold up, ice-blue down), slowly turning
+        g.translate(cx, cy);
+        for (let i = 0; i < 48; i++) {
+          const a = (i / 48) * U.TAU + t * 0.05;
+          const up = Math.sin(a) < 0;
+          g.strokeStyle = up ? `rgba(248,222,148,${0.16 + 0.3 * glow})` : `rgba(160,210,255,${0.12 + 0.25 * glow})`;
+          g.lineWidth = i % 2 ? 2 : 5;
+          g.beginPath(); g.moveTo(Math.cos(a) * 90, Math.sin(a) * 90); g.lineTo(Math.cos(a) * 1500, Math.sin(a) * 1500); g.stroke();
+        }
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        // the mirror line
+        g.fillStyle = `rgba(220,240,255,${0.5 + 0.5 * glow})`;
+        g.shadowColor = "rgba(150,210,255,1)"; g.shadowBlur = 30;
+        g.fillRect(0, cy - 2, Wd, 4);
+        g.shadowBlur = 0;
+        // arms: glove fingertip is 262 px below the wrist at s = 1
+        const s = 1.05, reach = 262 * s;
+        MV.drawPointingArm(g, MV.P, cx, cy - reach - gap / 2, s);
+        g.save();
+        g.translate(0, 2 * cy); g.scale(1, -1); // the reflection: mirrored about the line
+        g.globalAlpha = 0.92;
+        MV.drawPointingArm(g, MV.SHADOW, cx, cy - reach - gap / 2, s);
+        g.restore();
+        // contact light
+        if (glow > 0) {
+          const R = 60 + glow * 420 + Math.sin(t * U.TAU * 2.5) * 12 * glow;
+          const rg = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+          rg.addColorStop(0, `rgba(255,255,255,${glow})`);
+          rg.addColorStop(0.25, `rgba(255,236,180,${0.75 * glow})`);
+          rg.addColorStop(1, "rgba(255,200,90,0)");
+          g.globalCompositeOperation = "lighter";
+          g.fillStyle = rg; g.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+          // horizontal flare along the mirror
+          const fg = g.createLinearGradient(0, 0, Wd, 0);
+          fg.addColorStop(0, "rgba(140,200,255,0)"); fg.addColorStop(0.5, `rgba(235,248,255,${0.8 * glow})`); fg.addColorStop(1, "rgba(140,200,255,0)");
+          g.fillStyle = fg; g.fillRect(0, cy - 10 - 6 * glow, Wd, 20 + 12 * glow);
+          // sparks thrown out of the contact (closed-form, seeded)
+          for (let i = 0; i < 90; i++) {
+            const life = 1.1, ph = ((t - tTouch) * 0.9 + U.hash(i, 3) * life) % life;
+            const ang = U.hash(i, 1) * U.TAU, sp = 260 + U.hash(i, 2) * 520;
+            const px = cx + Math.cos(ang) * sp * ph, py = cy + Math.sin(ang) * sp * ph * 0.7;
+            const al = (1 - ph / life) * glow;
+            g.fillStyle = Math.sin(ang) < 0 ? `rgba(255,226,150,${al})` : `rgba(170,220,255,${al})`;
+            g.beginPath(); g.arc(px, py, 2.5 + 3 * U.hash(i, 4), 0, U.TAU); g.fill();
+          }
+          g.globalCompositeOperation = "source-over";
+        }
+        g.restore();
       });
+      // light swells on "every", peaks on "time"
+      const sw = U.clamp((ctx.t - (tTime - 0.3)) / 0.55);
+      if (sw > 0) ctx.post.flash = ["#fff6e0", 0.55 * sw * sw];
+      return;
     }
+    // title card after the music: the Jack of Mirrors card, then a fade to black at the very end
+    const tk = ctx.t - tTimeEnd;
+    stageLights(ctx, 0.9);
+    wallsEyes();
+    eyeBlink(ctx);
+    W.floorLines.visible = false;
+    bigCardAt([0, 2.45, 4.2], 0, Math.sin(ctx.t * 1.2) * 0.14, 0, 0.62);
+    W.glow([0, 2.45, 3.6], 7, 0.35);
+    sparksRise(ctx, 40, [0, 1.0, 3.0], 8, 0.5, 0.06, 0.7);
+    W.camLook([0, 2.45, U.lerp(10.6, 9.6, E.outCubic(U.clamp(tk / 1.8)))], [0, 2.45, 4.2], 38);
+    ctx.post.bloom = 0.25;
+    const inK = E.outCubic(U.clamp(tk / 0.35));
+    if (tk < 0.25) ctx.post.flash = ["#fff6e0", 0.6 * (1 - tk / 0.25)];
+    ctx.overlay.push((O) => {
+      O.text("MIRROR MIRROR", 1920 / 2, 150, { font: "400 120px Limelight", color: "#f8de94", glow: "rgba(255,190,80,0.9)", blur: 30, alpha: inK });
+      O.text("ANNO DOMINI BEATS", 1920 / 2, 960, { font: "700 40px 'Josefin Sans'", color: "#f4ecd8", tracking: "14px", alpha: inK });
+    });
+    const out = U.clamp((ctx.t - (U.TOTAL - 0.45)) / 0.45);
+    if (out > 0) ctx.post.flash = ["#000", out];
   });
 
   MV.SHOTS = S;

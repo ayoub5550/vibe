@@ -26,7 +26,7 @@ window.MV = window.MV || {};
   // l* = character's screen-left limbs. Arms: negative = out to the left. Legs: same convention.
   const POSES = {
     neutral: {},
-    bounceDown: { lHip: -16, lKnee: 26, rHip: 16, rKnee: -26, lSh: -24, lEl: -40, rSh: 24, rEl: 40, head: 4 },
+    bounceDown: { lHip: -22, lKnee: 34, rHip: 22, rKnee: -34, lSh: -26, lEl: -46, rSh: 26, rEl: 46, head: 5, squash: 0.03 },
     bounceUp: { lHip: -6, lKnee: 4, rHip: 6, rKnee: -4, lSh: -18, lEl: -60, rSh: 18, rEl: 60, head: -3 },
     stepL: { shift: -46, lHip: -28, lKnee: 6, rHip: 2, rKnee: -14, torso: -5, lSh: -70, lEl: -30, rSh: 30, rEl: 80 },
     stepR: { shift: 46, lHip: -2, lKnee: 14, rHip: 28, rKnee: -6, torso: 5, lSh: -30, lEl: -80, rSh: 70, rEl: 30 },
@@ -40,7 +40,7 @@ window.MV = window.MV || {};
     hips: { lSh: -40, lEl: -105, rSh: 40, rEl: 105, lHand: "fist", rHand: "fist", lHip: -12, rHip: 12, head: -4 },
     crossArms: { lSh: -20, lEl: -125, rSh: 20, rEl: 125, lHand: "fist", rHand: "fist", lHip: -9, rHip: 9, head: 6 },
     shrug: { lSh: -55, lEl: 70, rSh: 55, rEl: -70, head: 14, torso: 0, lHip: -6, rHip: 6 },
-    pray: { lSh: -16, lEl: -148, rSh: 16, rEl: 148, head: 16, lHip: -26, lKnee: 64, rHip: 26, rKnee: -64, lHand: "open", rHand: "open" },
+    pray: { lSh: -14, lEl: 146, rSh: 14, rEl: -146, head: 18, lHip: -10, lKnee: 12, rHip: 10, rKnee: -12, squash: 0.03, lHand: "open", rHand: "open" },
     kneelTouch: { rSh: 24, rEl: 4, lSh: -48, lEl: -36, head: 24, torso: 16, lHip: -34, lKnee: 78, rHip: 30, rKnee: -82, rHand: "open" },
     bow: { lSh: -60, lEl: 20, rSh: 60, rEl: -20, head: 26, squash: 0.12, lHip: -8, rHip: 8 },
     runA: { lHip: 28, lKnee: -60, rHip: -10, rKnee: 30, lSh: 40, lEl: 80, rSh: -50, rEl: -90, torso: 4, air: 18 },
@@ -82,7 +82,7 @@ window.MV = window.MV || {};
     wave: { len: 4, keys: [[0, "pointOutL", "outBack"], [1, "frame", "outCubic"], [2, "pointOutR", "outBack"], [3, "vUp", "outCubic"]] },
     hype: { len: 4, keys: [[0, "pointUpR", "outBack"], [1, "bounceDown", "outCubic"], [2, "pointUpL", "outBack"], [3, "bounceDown", "outCubic"]] },
     strike: { len: 4, keys: [[0, "strikeR", "outExpo"], [1, "hips", "outCubic"], [2, "strikeL", "outExpo"], [3, "crossArms", "outCubic"]] },
-    run: { len: 1, keys: [[0, "runA", "inOutQuad"], [0.5, "runB", "inOutQuad"]] },
+    run: { len: 2, smooth: true, keys: [[0, "runA", "inOutSine"], [1, "runB", "inOutSine"]] }, // one stride per beat, continuous
     count: { len: 1, keys: [[0, "count1", "outBack"], [0.5, "count2", "inOutQuad"]] },
     kicks: { len: 4, keys: [[0, "kickR", "outExpo"], [1, "bounceDown", "outCubic"], [2, "kickL", "outExpo"], [3, "bounceDown", "outCubic"]] },
     puppet: { len: 2, keys: [[0, "puppet", "outElastic"], [1, "puppetB", "outElastic"]] },
@@ -91,20 +91,44 @@ window.MV = window.MV || {};
   };
   MV.MOVES = MOVES;
 
+  // Dance timing (critic fix): a move hits its key pose ON the key beat. The transition starts
+  // PRE beats early and settles POST beats after, with anticipation + overshoot (inOutBack), i.e.
+  // about 3-5 frames of in-betweens at 150 BPM. Draft 1 started at the beat with outExpo and
+  // jumped in 1-2 frames, which read as robotic semaphore.
+  const PRE = 0.3, POST = 0.22;
   function moveAt(name, beatInMove) {
     const m = MOVES[name];
-    const ph = ((beatInMove % m.len) + m.len) % m.len;
-    const keys = m.keys;
-    let i = keys.length - 1;
-    for (let j = 0; j < keys.length; j++) if (keys[j][0] <= ph) i = j;
-    const a = keys[i];
-    const b = keys[(i + 1) % keys.length];
-    const tA = a[0];
-    const tB = i + 1 < keys.length ? b[0] : m.len + keys[0][0];
-    const k = U.clamp((ph - tA) / Math.max(1e-6, tB - tA));
-    // snap into the new pose in the first 45% of the segment, then hold (reads as "on the beat")
-    const kk = (U.ease[b[2]] || U.ease.outCubic)(U.clamp(k / 0.45));
-    return lerpPose(full(a[1]), full(b[1]), kk);
+    const len = m.len, keys = m.keys, n = keys.length;
+    const ph = ((beatInMove % len) + len) % len;
+    if (m.smooth) {
+      // cyclic motion (run): continuous sine interpolation between keys, no holds
+      let i = n - 1;
+      for (let j = 0; j < n; j++) if (keys[j][0] <= ph) i = j;
+      const a = keys[i], b = keys[(i + 1) % n];
+      const tB = i + 1 < n ? b[0] : len + keys[0][0];
+      const k = U.clamp((ph - a[0]) / Math.max(1e-6, tB - a[0]));
+      return lerpPose(full(a[1]), full(b[1]), U.ease.inOutSine(k));
+    }
+    const wrap = (d) => ((((d + len / 2) % len) + len) % len) - len / 2; // signed distance in (-len/2, len/2]
+    for (let j = 0; j < n; j++) {
+      const kt = keys[j][0];
+      const prev = keys[(j - 1 + n) % n];
+      const seg = ((kt - prev[0]) % len + len) % len || len;
+      const pre = Math.min(PRE, seg * 0.45), post = Math.min(POST, seg * 0.3);
+      const d = wrap(ph - kt);
+      if (d >= -pre && d <= post) {
+        const k = (d + pre) / (pre + post);
+        const ease = keys[j][2] === "outElastic" ? U.ease.outElastic : U.ease.inOutBack;
+        return lerpPose(full(prev[1]), full(keys[j][1]), ease(k));
+      }
+    }
+    // hold the latest key at or before ph
+    let best = n - 1, bestD = Infinity;
+    for (let j = 0; j < n; j++) {
+      const d = ((ph - keys[j][0]) % len + len) % len;
+      if (d < bestD) { bestD = d; best = j; }
+    }
+    return full(keys[best][1]);
   }
 
   // choreo = [{b: startBeat, move|pose, len?}] (sorted). Returns pose at absolute beat `beat`.
@@ -114,10 +138,10 @@ window.MV = window.MV || {};
     const c = choreo[idx];
     const poseOf = (cc, bb) => (cc.move ? moveAt(cc.move, bb - cc.b) : full(cc.pose));
     let p = poseOf(c, beat);
-    // crossfade from the previous entry over 0.35 beat
+    // crossfade from the previous entry over 0.6 beat (S-curve: no 2-frame body snaps)
     if (idx > 0) {
-      const k = U.clamp((beat - c.b) / 0.35);
-      if (k < 1) p = lerpPose(poseOf(choreo[idx - 1], beat), p, U.ease.outCubic(k));
+      const k = U.clamp((beat - c.b) / 0.6);
+      if (k < 1) p = lerpPose(poseOf(choreo[idx - 1], beat), p, U.ease.inOutCubic(k));
     }
     return p;
   };
@@ -364,6 +388,9 @@ window.MV = window.MV || {};
 
   // compute joints in canvas px for a pose (feet planted on GY unless airborne)
   function solve(p) {
+    // clamp: the left shin may point right by at most 12 deg (and mirrored), so legs never X-cross
+    const lShin = Math.min(p.lHip + p.lKnee, 12), rShin = Math.max(p.rHip + p.rKnee, -12);
+    p = Object.assign({}, p, { lKnee: lShin - p.lHip, rKnee: rShin - p.rHip });
     const torsoA = p.torso;
     const pelvis = [CX + p.shift, 0];
     const hipL = [pelvis[0] - L.hip, 0], hipR = [pelvis[0] + L.hip, 0];
@@ -387,6 +414,64 @@ window.MV = window.MV || {};
   function mul(a, s) { return [a[0] * s, a[1] * s]; }
 
   MV.jesterJoints = solve;
+
+  // Close-up insert for the finale (drawn big on the overlay): forearm from above, gold cuff and a
+  // white cartoon glove pointing down. Local units at s = 1: wrist at (0, 0), fingertip at (0, 262).
+  function glove(g, pal) {
+    g.save();
+    g.lineJoin = "round";
+    g.lineCap = "round";
+    g.strokeStyle = pal.ink;
+    g.lineWidth = 6;
+    g.fillStyle = pal.skin;
+    // curled fingers (knuckle bumps), drawn first so the back of the hand overlaps them
+    for (let i = 0; i < 3; i++) {
+      g.beginPath();
+      g.ellipse(14 + i * 22, 112 - i * 6, 21, 25, -0.15, 0, U.TAU);
+      g.fill(); g.stroke();
+    }
+    // extended index finger
+    MV.roundRect(g, -44, 70, 44, 192, 22);
+    g.fill(); g.stroke();
+    // back of the hand
+    g.beginPath();
+    g.moveTo(-52, 0);
+    g.bezierCurveTo(-70, 40, -66, 92, -40, 118);
+    g.lineTo(46, 112);
+    g.bezierCurveTo(70, 80, 66, 30, 50, 0);
+    g.closePath();
+    g.fill(); g.stroke();
+    // thumb folded across
+    g.beginPath();
+    g.ellipse(-46, 64, 18, 36, 0.5, 0, U.TAU);
+    g.fill(); g.stroke();
+    // stitching lines on the back of the glove
+    g.lineWidth = 5;
+    for (const x of [-18, 2, 22]) { g.beginPath(); g.moveTo(x, 22); g.lineTo(x * 1.05, 62); g.stroke(); }
+    // soft shading on the far side
+    g.globalAlpha = 0.12;
+    g.fillStyle = pal.ink;
+    g.beginPath();
+    g.moveTo(50, 4); g.bezierCurveTo(66, 30, 70, 80, 46, 112); g.lineTo(34, 108); g.bezierCurveTo(52, 76, 50, 34, 38, 4);
+    g.closePath(); g.fill();
+    // fingernail-like highlight on the finger tip
+    g.globalAlpha = 0.5;
+    g.fillStyle = "#ffffff";
+    MV.roundRect(g, -34, 214, 12, 34, 6); g.fill();
+    g.restore();
+  }
+  MV.drawPointingArm = function (g, pal, x, yWrist, s) {
+    g.save();
+    g.translate(x, yWrist);
+    g.scale(s, s);
+    g.lineJoin = "round";
+    g.lineCap = "round";
+    const a = [-6, -900 / s], b = [0, -6];
+    limb(g, pal, a, b, 150, 118, "red");
+    cuff(g, pal, a, b, 136);
+    glove(g, pal);
+    g.restore();
+  };
 
   // draw the full figure. pal = MV.P (red/blue hero) or MV.SHADOW (blue self)
   MV.drawJester = function (g, pose, pal, t = 0, opt = {}) {

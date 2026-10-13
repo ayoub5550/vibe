@@ -16,9 +16,9 @@ window.MV = window.MV || {};
     // vignette
     O.vig = MV.canvas(W, H);
     const vg = O.vig.getContext("2d");
-    const grd = vg.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 1.0);
+    const grd = vg.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 1.05);
     grd.addColorStop(0, "rgba(0,0,0,0)");
-    grd.addColorStop(1, "rgba(0,0,0,0.78)");
+    grd.addColorStop(1, "rgba(0,0,0,0.5)");
     vg.fillStyle = grd;
     vg.fillRect(0, 0, W, H);
     // grain tiles (4 variants, picked by frame)
@@ -36,11 +36,24 @@ window.MV = window.MV || {};
     });
   };
 
-  O.begin = function () {
-    O.g.setTransform(1, 0, 0, 1, 0, 0);
-    O.g.globalAlpha = 1;
-    O.g.globalCompositeOperation = "source-over";
-    O.g.clearRect(0, 0, W, H);
+  // The overlay is OPAQUE: it starts as a copy of the GL frame, so every pass below composites on
+  // the real image. (Draft 1 drew bloom onto a transparent canvas: its crushed-black pixels then
+  // veiled the whole frame at the bloom alpha, a hidden 30-40% darkening. Never do that again.)
+  // lift = midtone lift: screen the frame with itself (x + lift*(x - x^2)), about +1 stop in the mids.
+  O.begin = function (lift = 0.6) {
+    const g = O.g;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = "copy";
+    g.drawImage(O.gl, 0, 0, W, H);
+    if (lift > 0) {
+      g.globalCompositeOperation = "screen";
+      g.globalAlpha = Math.min(1, lift);
+      g.drawImage(O.gl, 0, 0, W, H);
+      if (lift > 1) { g.globalAlpha = lift - 1; g.drawImage(O.gl, 0, 0, W, H); }
+      g.globalAlpha = 1;
+    }
+    g.globalCompositeOperation = "source-over";
   };
 
   O.bloom = function (amount = 0.55) {
@@ -76,12 +89,30 @@ window.MV = window.MV || {};
     g.globalCompositeOperation = "source-over";
   };
 
+  // black = fade (source-over). Any other colour = an EXPOSURE flash (colour-dodge): brights blow
+  // out, blacks stay black, so the hit reads as light instead of a milky wash.
   O.flash = function (color, a) {
     if (a <= 0.003) return;
-    O.g.globalAlpha = U.clamp(a);
-    O.g.fillStyle = color;
-    O.g.fillRect(0, 0, W, H);
-    O.g.globalAlpha = 1;
+    const g = O.g;
+    if (color === "#000" || color === "#000000" || color === "black") {
+      g.globalAlpha = U.clamp(a);
+      g.fillStyle = color;
+      g.fillRect(0, 0, W, H);
+      g.globalAlpha = 1;
+      return;
+    }
+    const c = parseInt(color.slice(1), 16);
+    const k = U.clamp(a) * 0.82;
+    const r = ((c >> 16) & 255) * k, gg = ((c >> 8) & 255) * k, b = (c & 255) * k;
+    g.globalCompositeOperation = "color-dodge";
+    g.fillStyle = `rgb(${r | 0},${gg | 0},${b | 0})`;
+    g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = "lighter";
+    g.globalAlpha = U.clamp(a) * 0.12;
+    g.fillStyle = color;
+    g.fillRect(0, 0, W, H);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = "source-over";
   };
 
   O.letterbox = function (h) {

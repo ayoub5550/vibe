@@ -1,7 +1,7 @@
 # Mirror Mirror: storyboard (edit decision list)
 
 Song: "Mirror Mirror" by Anno Domini Beats (YouTube Audio Library), 79.22 s excerpt, 150 BPM,
-beat k at `t = 0.06 + 0.4·k`. The code is `js/shots.js`, one `shot(b0, b1, name, fn)` per row.
+beat k at `t = 0.06 + 0.4·k`. Composition: 81.02 s (79.22 s of music plus a 1.8 s title tail). The code is `js/shots.js`, one `shot(b0, b1, name, fn)` per row.
 Every cut lands 0.02–0.22 s before the first sung word of its line (root `AGENTS.md` §8).
 Concept: a harlequin **Jack of Mirrors** argues with his reflection on a gold art-deco stage
 built from a deck of cards. Walls of card backs carry eyes (the audience). The blue twin is his
@@ -12,7 +12,7 @@ conscience or truth, and the finale makes him touch it.
 | 01 | −1–4.5 | 0.00–1.86 | Mirror, mirror on the wall | The Jack of Mirrors card (top red, bottom mirrored blue) floats in the void on a gold lattice; the camera pulls back | on the card | MIRROR · ЯOЯЯIM (mirrored) · ON THE WALL |
 | 02 | 4.5–9 | 1.86–3.66 | Tell me who gon' rise and fall | The card flips to its back, where an eye opens; a flash on the flip | – | RISE (up) · FALL (drops) |
 | 03 | 9–12.6 | 3.66–5.10 | I been runnin' from my flaws | First reveal of the gold sunburst stage and mirror floor; cards (his flaws) chase him | `run` | FLAWS |
-| 04 | 12.6–16.8 | 5.10–6.78 | Still, I'm standin' ten feet tall | A 1–10 ruler rises; he grows to the 10 mark; gold dust | `tall`, `hips` | 10 |
+| 04 | 12.6–16.8 | 5.10–6.78 | Still, I'm standin' ten feet tall | A fixed 1–10 ruler rises; he grows 1.9× until his raised fists reach the 10 mark | `tall`, `hips` | 10 |
 | 05 | 16.8–21.8 | 6.78–8.78 | Mirror, mirror, don't you lie | An arched mirror; his reflection does a different move, so the mirror lies | `frameMirror` vs `mirrorTouchR` | LIE (red) |
 | 06 | 21.8–25.6 | 8.78–10.30 | I can see it in my eyes | A giant eye opens behind him and he appears in its iris; the eye walls open in a wave | `groove`, `lookUp` | – |
 | 07 | 25.6–29.8 | 10.30–11.98 | Truth gon' surface every time | "SURFACE" rises out of the mirror floor and reads upside down in the reflection | `groove` | SURFACE · EVERY · TIME |
@@ -29,18 +29,19 @@ conscience or truth, and the finale makes him touch it.
 | 18 | 102.8–110.6 | 41.18–44.30 | They gon' crop you out the frame if you ever lose control | A red REC viewfinder crop box tracks him; he slips and the box crops him OUT OF FRAME | `frameMirror` → `fall` | CROP · OUT OF FRAME |
 | 19 | 110.6–114.2 | 44.30–45.74 | I just talk truth, they call it hate | Gold neon TRUTH above; the mirror floor shows HATE in pink-red (`reflText`) | `pointOutR`, `shrug` | TRUTH / HATE |
 | 20 | 114.2–118.2 | 45.74–47.34 | But the fake love louder than a eight | A fan of cards behind him whose hearts are upside-down red spades | `hype` | FAKE LOVE · 8 |
-| 21 | 118.2–126.2 | 47.34–50.54 | Every scar got a sermon in it / Every L got a learn in it | A giant Jack card beside him; SERMON, then a big L that becomes LEARN | `strike` | SERMON · L → LEARN |
-| 22 | 126.2–131 | 50.54–52.46 | I ain't perfect, I just pity how I lived it | Three arched mirrors whose reflections dance out of sync (imperfect) | `frameMirror` | PERFECT (negated) |
+| 21 | 118.2–126.2 | 47.34–50.54 | Every scar got a sermon in it / Every L got a learn in it | A giant Jack card beside him gets a glowing scar slash; SERMON. A new angle on "Every L": a giant gold L (about 45% of frame height) that turns into LEARN | `strike` | SERMON · L → LEARN |
+| 22 | 126.2–131 | 50.54–52.46 | I ain't perfect, I just pity how I lived it | Three arched mirrors whose dimmer, smaller reflections dance out of sync (imperfect) | `frameMirror` | ~~PERFECT~~ (red strike) |
 | 23 | 131–136 | 52.46–54.46 | If the game rigged, then I still pivot, uh | Marionette strings from a gold control bar (rigged); they **snap on "pivot"** and he spins free | `puppet` → `strikeR` | RIGGED · PIVOT |
-| 24 | 136–144.8 | 54.46–57.98 | Mirror, mirror on the wall / Tell me who gon' rise and fall | Hook 2: a curved hall of arched mirrors full of blue clones; the camera arcs | `wave`, `star`, `fall` | THE WALL |
-| 25 | 144.8–152.8 | 57.98–61.18 | runnin' from my flaws / standin' ten feet tall | Cards chase him, then the ruler, and he grows to 10 | `run` → `tall` | FLAWS · 10 |
+| 24 | 136–144.8 | 54.46–57.98 | Mirror, mirror on the wall / Tell me who gon' rise and fall | Hook 2: a curved hall of seven arched mirrors with blue clones (smaller and dimmer than him); the camera arcs | `wave`, `star`, `fall` | THE WALL |
+| 25 | 144.8–152.8 | 57.98–61.18 | runnin' from my flaws / standin' ten feet tall | Cards chase him, then the ruler; the camera cranes back while he grows 2× to the 10 mark | `run` → `tall` | FLAWS · 10 |
 | 26 | 152.8–161.8 | 61.18–64.78 | Mirror, mirror, don't you lie / I can see it in my eyes | A giant eye with gold lashes over the eye wall, tracking him | `wave`, `pointUpR` | – |
 | 27 | 161.8–168.6 | 64.78–67.50 | Truth gon' surface every time / Even when the lights dim | Hero and shadow side by side; SURFACE rises between them; the spots dim | `groove`, `mirrorTouchR` | SURFACE |
-| 28 | 168.6–176.8 | 67.50–70.78 | Mirror, mirror on the wall / rise and fall | Hook 3: a card tornado swirls around hero and shadow | `hype`, `star`, `strike` | RISE · FALL |
-| 29 | 176.8–184.8 | 70.78–73.98 | runnin' from my flaws / ten feet tall | A house of cards builds into a pyramid; he climbs it and stands tall on top | `run` → `tall` | – |
+| 28 | 168.6–176.8 | 67.50–70.78 | Mirror, mirror on the wall / rise and fall | Hook 3: a card tornado on a wide ring around and above hero and shadow (they stand one body width apart, each under a spotlight); cards never cross them | `hype`, `star`, `strike` | RISE · FALL |
+| 29 | 176.8–184.8 | 70.78–73.98 | runnin' from my flaws / ten feet tall | A house of cards builds into a pyramid; he runs up it and the camera climbs with him; on the summit a ruler appears and he grows to the 10 mark | `run` → `hips` → `tall` | – |
 | 30 | 184.8–193.6 | 73.98–77.50 | Mirror, mirror, don't you lie / I can see it in my eyes | Quick cuts on the beat: mirror hall, face close-up, the eye, kicks | `kicks` | EYES |
-| 31 | 193.6–end | 77.50–end | Truth gon' surface every time | The finale: red hero and blue reflection reach, and their **hands meet** with a burst of light; then the title card | `touch` | MIRROR MIRROR · ANNO DOMINI BEATS |
+| 31 | 193.6–end | 77.50–81.02 | Truth gon' surface every time | The finale: red hero and blue reflection reach toward each other while the camera rushes in. On "surface" it cuts to a 2D close-up: his gloved finger comes down to touch his reflection's finger on the mirror line, and a burst of gold and ice light is held through "time" (79.1). **After the music:** the Jack of Mirrors card title card, then a fade to black | `touch` | MIRROR MIRROR · ANNO DOMINI BEATS |
 
 Energy map: hook 1 (0–12.86) establishes · verse A (12.86–25.66) is quiet, slow camera, longer
-shots · **25.66 kick drop**: flash, shake, punch-zoom on kicks · verse B (25.66–54.46) gives
-one gag per line · hooks 2 and 3 (54.46–79.22) carry the biggest set pieces and end on the touch.
+shots, eye walls · **25.66 kick drop**: flash, shake, punch-zoom on kicks, and the walls flip to
+white face cards · verse B (25.66–54.46) gives one gag per line · hooks 2 and 3 (54.46–79.22)
+carry the biggest set pieces and end on the touch · tail (79.22–81.02) is the title card.

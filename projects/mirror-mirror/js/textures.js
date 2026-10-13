@@ -643,6 +643,18 @@ window.MV = window.MV || {};
       g.strokeText(text, x, y);
     }
     g.fillText(text, x, y);
+    if (o.strike) {
+      // negation bar through the word (e.g. "I ain't PERFECT")
+      g.shadowColor = o.strike;
+      g.shadowBlur = 24;
+      g.fillStyle = o.strike;
+      g.save();
+      g.translate(x, y);
+      g.rotate(-0.06);
+      g.fillRect(-tw / 2 - 20, -size * 0.07, tw + 40, size * 0.14);
+      g.restore();
+      g.shadowBlur = 0;
+    }
     const res = { tex: tex(c, { mips: true }), aspect: W / H, w: W, h: H };
     textCache[key] = res;
     return res;
