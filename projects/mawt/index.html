@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>الموت الهارب — Tamim Al-Barghouti — anime / manga motion graphics poem video</title>
+    <script src="vendor/gsap.min.js"></script>
+    <script src="vendor/three.min.js"></script>
+    <script src="vendor/anime.min.js"></script>
+    <style>
+      @font-face { font-family: "Amiri"; src: url("fonts/Amiri-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+      @font-face { font-family: "Amiri"; src: url("fonts/Amiri-700.woff2") format("woff2"); font-weight: 700; font-display: block; }
+      @font-face { font-family: "Lalezar"; src: url("fonts/Lalezar-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #f4efe4; }
+      #gl, #ov, #svg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      .atl { position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0.01; }
+      .font-warm { position: absolute; left: 0; top: 0; opacity: 0.01; font-size: 20px; color: #f4efe4; }
+      .fw-amiri { font-family: "Amiri"; font-weight: 400; }
+      .fw-amiri7 { font-family: "Amiri"; font-weight: 700; }
+      .fw-lalezar { font-family: "Lalezar"; font-weight: 400; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="58.95" data-width="1920" data-height="1080">
+      <canvas id="gl" width="1920" height="1080" data-layout-ignore></canvas>
+      <canvas id="ov" width="1920" height="1080" data-layout-ignore></canvas>
+      <svg id="svg" viewBox="0 0 1920 1080" data-layout-ignore></svg>
+      <img id="atl-cage" class="atl" src="assets/blender/cage_atlas.png" alt="" data-layout-ignore />
+      <img id="atl-cageburst" class="atl" src="assets/blender/cageburst_atlas.png" alt="" data-layout-ignore />
+      <img id="atl-rifle" class="atl" src="assets/blender/rifle_atlas.png" alt="" data-layout-ignore />
+      <div class="font-warm" data-layout-ignore>
+        <span class="fw-amiri7">الموت الهارب موتي نكص قناص القنص تبعته القصور الخصص ظبي الذئب الفرص التشهي أعاجيب القصص العمر نقص غصص يا موت أجبن ألص الصف فتني ترص تعال حصتي رقص حر القفص يهرب يغلو الرخص ١٧ ١٨ ١٩ ٢٠ ٢١</span>
+        <span class="fw-amiri">تميم البرغوثي مع تميم ساحة Tamim Al-Barghouti The Fleeing Death AJ+ 0123456789</span>
+        <span class="fw-lalezar">طاخ ووووش بوم كرررك ششش خرررر يا موت نكص قناص تبعته ظبي الذئب نقص تعال رقص حر القفص يهرب يغلو رخيص ∞ ٠ ١ ٩</span>
+      </div>
+      <audio id="song" src="assets/song.wav" data-start="0" data-duration="57.15" data-track-index="0" data-volume="1"></audio>
+    </div>
+    <script src="js/song.js"></script>
+    <script src="js/atlas.js"></script>
+    <script src="js/util.js"></script>
+    <script src="js/textures.js"></script>
+    <script src="js/chars.js"></script>
+    <script src="js/stage.js"></script>
+    <script src="js/overlay.js"></script>
+    <script src="js/svg.js"></script>
+    <script src="js/shots.js"></script>
+    <script src="js/shots2.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      MV.attachTimeline(tl);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

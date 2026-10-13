@@ -1,0 +1,9 @@
+[
+ {"name": "a_death_recoils", "beats": [0, 6], "feel": "manga page opens in black and white; Death comes, then recoils; the sniper trembles. Voice steady, declamatory"},
+ {"name": "b_the_chase", "beats": [6, 18], "feel": "manga action: the hero follows Death through palaces and huts; the gazelle hunts the wolf (inverted world). Faster panels, speed lines"},
+ {"name": "c_wonders", "beats": [18, 28], "feel": "the voice peaks (loudest 18-23 s): wonders of stories, life that shrinks as it grows, joys flipped into griefs. Still black and white, building pressure"},
+ {"name": "d_ya_mawt", "beats": [28, 37], "feel": "COLOUR BURST on «يا موت»: the hero tears out of the panels and confronts Death; the row of the dead; come and give me my share"},
+ {"name": "e_inverted_world", "beats": [37, 43], "feel": "the monkey dances with the crying boy's bread; the monkey is free, the boy is in the (Blender) cage"},
+ {"name": "f_fleeing", "beats": [43, 49], "feel": "Death runs from the hero although it took everyone; it is dear for him in the season of cheap death"},
+ {"name": "g_outro", "beats": [49, 72], "feel": "17 s of instrumental pad, no beat (on_grid 0.0): the anime finale. Transformation, the cage breaks, Death flees into the sunrise, the kite flies again; then the title card"}
+]
