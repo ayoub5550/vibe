@@ -12,7 +12,8 @@ The repo started as a remake of the "Ultracode" run from Devarf's experiment
 - Second video: [`projects/khawf`](projects/khawf), «الخوف» (Fear), a poem by Tamim Al-Barghouti made as a
   shadow-play (خيال الظل) with a leather-puppet Sultan who ages, Blender props and Arabic kinetic type.
   The beat grid comes from the poem's metre (`tools/voice_pulse.py`). Shot list:
-  [`storyboard.md`](projects/khawf/storyboard.md).
+  [`storyboard.md`](projects/khawf/storyboard.md). **Full build recipe (every command, parameter and timing): [`BUILD.md`](projects/khawf/BUILD.md).**
+  Watch: [`reference/khawf/khawf.mp4`](reference/khawf/khawf.mp4) (47 MB).
 - Toolbox (three.js, Canvas 2D, SVG, anime.js, Blender + runner, FFmpeg, Python, Node, AI): see
   `AGENTS.md` §4b and the tested demo [`projects/_toolbox-demo`](projects/_toolbox-demo).
 - Reference videos: [`reference/`](reference). That folder holds our render and a breakdown of the
@@ -28,7 +29,7 @@ bash ../../tools/check_render.sh out/mirror-mirror.mp4 <duration> assets/song.wa
 **Credits:** song "Mirror Mirror" by Anno Domini Beats (YouTube Audio Library). The original
 experiment and the Ultracode video are by Devarf (@VibeDevarf). Fonts: Big Shoulders Display,
 Limelight and Josefin Sans (SIL OFL). «الخوف»: poem by Tamim Al-Barghouti, recited in AJ+ Saha's «مع تميم»
-(the recording is not redistributed here). Fonts: Amiri (SIL OFL). Libraries: three.js (MIT), GSAP, anime.js (MIT), Blender (GPL, used as a tool; nothing of it is shipped).
+(the recording appears only inside `reference/khawf/khawf.mp4`, committed at the owner's request; all rights stay with AJ+ and the poet). Fonts: Amiri (SIL OFL). Libraries: three.js (MIT), GSAP, anime.js (MIT), Blender (GPL, used as a tool; nothing of it is shipped).
 
 ---
 
@@ -36,8 +37,10 @@ Limelight and Josefin Sans (SIL OFL). «الخوف»: poem by Tamim Al-Barghouti
 على كل وكيل ذكاء اصطناعي أن يقرأ `AGENTS.md` كاملاً قبل أي عمل. فيه الوصفة الصارمة خطوة بخطوة، مع شروط القبول والأخطاء التي يجب تجنبها.
 المرجعان هما فيديو Ultracode (مع تفكيك لقطاته) وفيديو Mirror Mirror الذي صُنع هنا.
 الفيديو الثاني «الخوف» لتميم البرغوثي موجود في `projects/khawf`، وهو مسرح خيال ظل يشيخ فيه سلطان الخوف. شبكة الإيقاع فيه مأخوذة من بحر القصيدة لأن الموسيقى بلا إيقاع.
+وصفة بنائه الكاملة خطوةً بخطوة، بكل الأوامر والمعاملات والتوقيتات المقيسة، موجودة في `projects/khawf/BUILD.md`.
 
 
 ## Watch
-- Full-quality render (Google Drive): https://drive.google.com/file/d/15uVnFPUiNHsTS45HzXr_gxqQuAkzo_ZM/view
+- «الخوف»: [reference/khawf/khawf.mp4](reference/khawf/khawf.mp4) (47 MB). Publishing kit: [reference/khawf/YOUTUBE.md](reference/khawf/YOUTUBE.md)
+- Mirror Mirror full-quality render (Google Drive): https://drive.google.com/file/d/15uVnFPUiNHsTS45HzXr_gxqQuAkzo_ZM/view
 - Publishing kit (YouTube title, description, tags): [reference/mirror-mirror/YOUTUBE.md](reference/mirror-mirror/YOUTUBE.md)

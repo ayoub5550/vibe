@@ -11,7 +11,7 @@
 | `khawf/contact_sheet_*.jpg` | 1 fps contact sheets of the final «الخوف» render (167.4 s) | yes |
 | `khawf/critic_draft1.md` | the critic's report on khawf draft 1 (5/10, P0: the Ruqaa font dropped its dots) | yes |
 | `khawf/YOUTUBE.md`, `khawf/thumbnail.jpg`, `khawf/khawf_ar.srt` | YouTube publishing kit: title, description, tags, thumbnail, Arabic captions | yes |
-| `khawf/khawf.mp4` | the final render. Its soundtrack is AJ+'s recording of Tamim Al-Barghouti reciting the poem, a third-party recording, so it is **not** committed by default (N4) | **no** (unless the owner decides otherwise) |
+| `khawf/khawf.mp4` | the final «الخوف» render: 167.4 s, 1080p30, 2-pass 2050 kb/s + AAC 192k (47 MB). Its soundtrack is AJ+'s recording of Tamim Al-Barghouti reciting the poem, a third-party recording, committed **at the owner's request** (2026-10-13, an N4 exception). How it was made: [`projects/khawf/BUILD.md`](../projects/khawf/BUILD.md) | yes |
 | song audio (`song.wav`) | YouTube Audio Library track. It may be used inside videos but not redistributed on its own. Recreate it with root `AGENTS.md` → Step 1 | **no** |
 
 Compare our video against the Ultracode run with `reference/ultracode/BREAKDOWN.md` side by side

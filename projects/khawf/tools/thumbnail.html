@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- thumbnail.html: YouTube thumbnail layout for «الخوف» (1280x720). Used by tools/thumbnail.sh,
+     which puts the 54.8 s frame next to this file as bg.png and screenshots the page in the
+     HyperFrames Chrome. Title type is Amiri 700 (Aref Ruqaa drops dots, AGENTS.md section 12); the
+     ZWJ after the lam in «الخ‍وف» keeps Amiri from stacking lam+khah into a ligature that reads «انخوف». -->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<style>
+  @font-face { font-family: "Amiri"; src: url("../fonts/Amiri-700.woff2") format("woff2"); font-weight: 700; font-display: block; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: #05060d; }
+  #bg { position: absolute; inset: 0; width: 1280px; height: 720px; object-fit: cover; }
+  /* darken the top-left corner a little so the type reads over the dunes */
+  #shade { position: absolute; inset: 0; background: radial-gradient(ellipse 760px 420px at 250px 120px, rgba(8, 10, 30, 0.55), rgba(8, 10, 30, 0) 70%); }
+  .t { position: absolute; font-family: "Amiri"; font-weight: 700; direction: rtl; white-space: nowrap; }
+  #title {
+    left: 52px; top: -52px; font-size: 196px; line-height: 1.6;
+    background: linear-gradient(180deg, #fff0c4 18%, #f2c25a 52%, #c98a2a 82%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    /* an outline via stacked drop-shadows: -webkit-text-stroke draws seams inside joined Arabic glyphs */
+    filter: drop-shadow(0 0 1.5px #3a1f08) drop-shadow(0 0 1px #3a1f08) drop-shadow(0 6px 0 rgba(42, 20, 6, 0.85)) drop-shadow(0 0 22px rgba(255, 186, 80, 0.45));
+  }
+  #poet {
+    left: 160px; top: 196px; font-size: 66px; line-height: 1.6; color: #f3ead8;
+    text-shadow: 2px 0 0 #24120a, -2px 0 0 #24120a, 0 2px 0 #24120a, 0 -2px 0 #24120a,
+      1.5px 1.5px 0 #24120a, -1.5px 1.5px 0 #24120a, 1.5px -1.5px 0 #24120a, -1.5px -1.5px 0 #24120a,
+      0 5px 0 rgba(20, 10, 4, 0.8);
+  }
+</style>
+</head>
+<body>
+  <img id="bg" src="bg.png" alt="" />
+  <div id="shade"></div>
+  <div id="title" class="t">ال&#x200D;خوف</div>
+  <div id="poet" class="t">تميم البرغوثي</div>
+</body>
+</html>

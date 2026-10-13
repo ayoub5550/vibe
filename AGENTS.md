@@ -29,6 +29,9 @@ the step and update this file. Do not skip it.
   from the metre (`tools/voice_pulse.py`, Step 3b), cuts land on hemistichs, and the type is RTL.
   Build history: draft 1 scored 5/10 with one P0 (the Ruqaa font dropped its dots). The critic report is
   in `reference/khawf/`, and the fixes are listed at the end of its `storyboard.md`.
+  **Its full build recipe is [`projects/khawf/BUILD.md`](projects/khawf/BUILD.md)**: every command, parameter,
+  measured timing and pitfall, from the YouTube audio to the 47 MB repo copy and the YouTube kit. Several
+  steps were re-run to prove they reproduce. Read it before you start a poem or spoken-word video.
 
 ## 1. The brief (what the original prompt asked; it is your spec too)
 
@@ -197,9 +200,12 @@ projects/mirror-mirror/   reference implementation (copy its structure for a new
   storyboard.md           the shot list (edit decision list) with the literal reading of each line
   vendor/ fonts/          three.js r158 UMD, gsap 3.14.2, woff2 fonts (all local; add anime.min.js if used)
   assets/song.wav         NOT COMMITTED: produce it in Step 1
+projects/khawf/          second video (poetry, no beat). Same architecture + puppet.js, svg.js, blender/, tools/
+  BUILD.md                the complete, measured build recipe of this video (start here for a poem)
 reference/
   ultracode/BREAKDOWN.md  shot-by-shot of the Ultracode video + timestamps + low-res stills
   mirror-mirror/          our final render, its contact sheets and the draft-1 critic report
+  khawf/                  «الخوف» final render (47 MB), contact sheets, critic report, YouTube kit
 ```
 
 ## 6. The pipeline (in order; each step has an output and a gate)
@@ -349,7 +355,8 @@ then run the check again on the re-encoded file. Send the user a CRF 18 copy: it
 Slack takes up to 1 GB (khawf's grainy parchment made CRF 18 575 MB, and the upload still worked).
 Copy the MP4 and its 1 fps contact sheets (JPG, about 1800 px wide) to `reference/<slug>/`, commit,
 and deliver the MP4 with a short note on the concept and the process. If the soundtrack is a
-third-party recording, commit only the sheets and ask the owner about the MP4 (N4).
+third-party recording, commit only the sheets and ask the owner about the MP4 (N4). For khawf the owner
+said yes (2026-10-13), so `reference/khawf/khawf.mp4` is committed.
 
 ## 7. Engine contract (as implemented in `projects/mirror-mirror`)
 
