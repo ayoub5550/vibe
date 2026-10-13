@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # check_render.sh — hard gate after every render. Exit 1 on any failure.
-# Usage: tools/check_render.sh <video.mp4> <expected_seconds> [song.wav]
+# Usage: tools/check_render.sh <video.mp4> <expected_seconds> [song.wav] [fps]
+#   fps: expected frame rate, default 30 (AGENTS.md section 2). Also settable as FPS=60 in the environment.
+#   projects/mawt renders at 60 fps (owner-approved): tools/check_render.sh out.mp4 58.95 assets/song.wav 60
 set -u
-V="$1"; EXP="$2"; SONG="${3:-}"
+V="$1"; EXP="$2"; SONG="${3:-}"; FPS="${4:-${FPS:-30}}"
 fail=0
 [ -s "$V" ] || { echo "FAIL: $V missing or empty"; exit 1; }
 info=$(ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate:format=duration -of default=nw=1 "$V")
@@ -11,7 +13,7 @@ echo "$info" | grep -q "codec_name=h264" || { echo "FAIL: video codec is not h26
 echo "$info" | grep -q "codec_name=aac" || { echo "FAIL: no AAC audio track"; fail=1; }
 echo "$info" | grep -q "width=1920" || { echo "FAIL: width != 1920"; fail=1; }
 echo "$info" | grep -q "height=1080" || { echo "FAIL: height != 1080"; fail=1; }
-echo "$info" | grep -q "r_frame_rate=30/1" || { echo "FAIL: fps != 30"; fail=1; }
+echo "$info" | grep -q "r_frame_rate=${FPS}/1" || { echo "FAIL: fps != ${FPS}"; fail=1; }
 dur=$(echo "$info" | sed -n 's/^duration=//p' | tail -1)
 python3 - "$dur" "$EXP" <<'PY' || fail=1
 import sys
@@ -26,7 +28,7 @@ echo "black runs >= 0.5s: $blk"
 [ "$blk" -eq 0 ] || { echo "WARN: black segments found (check they are intentional)"; }
 if [ -n "$SONG" ]; then
   # audio must be the song itself and in sync: envelope correlation at the best lag (+-120 ms)
-  # must be > 0.9 and the lag must be < 1 frame (AAC priming adds ~21 ms, which is fine)
+  # must be > 0.9 and the lag must be <= 30 ms (AAC priming adds ~21 ms, which is fine)
   python3 - "$V" "$SONG" <<'PY' || fail=1
 import subprocess, sys, struct
 def env(path):

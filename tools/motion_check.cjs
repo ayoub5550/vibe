@@ -4,6 +4,11 @@
 // Gate (AGENTS.md section 11): SNAP = a joint moving > 400 px (~35% of the figure) in one frame inside a
 // shot (a teleport, i.e. missing in-betweens). FAST = > 200 px: allowed only for kicks, pops and spins.
 // Usage: node tools/motion_check.cjs <projectDir> <t0-t1,t0-t1,...> [fps=30]
+// fps > 30 (projects/mawt renders at 60): every frame is still checked, but the travel is measured over
+// 1/30 s (against the pose fps/30 frames earlier), so the 400/200 px thresholds keep their meaning
+// whether a character is animated on ones (travel per 60-fps frame halves) or on twos (it moves on
+// every other frame by the 30-fps amount). Without this, on-twos animation would read 2x jerkier
+// than it is and on-ones animation 2x smoother.
 const path = require("path"), fs = require("fs"), http = require("http");
 const puppeteer = require("/usr/lib/node_modules/hyperframes/node_modules/puppeteer-core");
 const dir = process.argv[2], wins = (process.argv[3] || "0-5").split(",").map((w) => w.split("-").map(Number));
@@ -23,19 +28,22 @@ const srv = http.createServer((req, res) => {
   for (const [a, b] of wins) {
     const res = await page.evaluate((a, b, fps) => {
       const out = [];
-      let prev = null, prevShot = null;
+      const lag = Math.max(1, Math.round(fps / 30));
+      const hist = [];
       for (let f = Math.round(a * fps); f <= Math.round(b * fps); f++) {
         const t = f / fps;
         MV.renderAt(t, { poseOnly: true });
         const J = MV.jesterJoints(MV.lastPose);
         const CX = MV.JESTER_CANVAS.w / 2;
         const pts = [J.wrL, J.wrR, J.ankL, J.ankR, J.neckTop].map((p) => [CX + (p[0] - CX) * MV.lastPose.spin, p[1]]);
-        if (prev && prevShot === MV.lastShot) {
+        const old = hist.length >= lag ? hist[hist.length - lag] : null;
+        if (old && old.shot === MV.lastShot) {
           let m = 0;
-          pts.forEach((p, i) => { m = Math.max(m, Math.hypot(p[0] - prev[i][0], p[1] - prev[i][1])); });
+          pts.forEach((p, i) => { m = Math.max(m, Math.hypot(p[0] - old.pts[i][0], p[1] - old.pts[i][1])); });
           out.push([t, m, MV.lastShot]);
         }
-        prev = pts; prevShot = MV.lastShot;
+        hist.push({ pts, shot: MV.lastShot });
+        if (hist.length > lag) hist.shift();
       }
       return out;
     }, a, b, fps);
@@ -47,7 +55,7 @@ const srv = http.createServer((req, res) => {
     }
   }
   worst.sort((x, y) => y[0] - x[0]);
-  console.log(`frames ${frames}  SNAP(>400px/frame) ${snaps}  fast(200-400) ${fast}  -> ${snaps ? "FAIL" : "PASS"}`);
+  console.log(`fps ${fps} (travel measured over 1/30 s)  frames ${frames}  SNAP(>400px/frame) ${snaps}  fast(200-400) ${fast}  -> ${snaps ? "FAIL" : "PASS"}`);
   console.log("largest per-frame moves:", worst.slice(0, 6).map((w) => `${w[1].toFixed(2)}s ${w[0].toFixed(0)}px`).join(", "));
   await browser.close(); srv.close();
 });
